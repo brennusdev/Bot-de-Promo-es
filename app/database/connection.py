@@ -35,6 +35,18 @@ def get_database_backend():
     return "postgresql" if DATABASE_URL and DATABASE_URL.startswith("postgresql") else "sqlite"
 
 
+def supports_returning():
+    """PostgreSQL suporta RETURNING id; SQLite não."""
+    return get_database_backend() == "postgresql"
+
+
+def fetch_new_id(cursor):
+    """Obtém o id do registro inserido (RETURNING no Postgres, lastrowid no SQLite)."""
+    if supports_returning():
+        return cursor.fetchone()[0]
+    return cursor.lastrowid
+
+
 def ensure_sqlite_migrations(conn):
     """Adiciona colunas faltantes em bancos SQLite já existentes."""
     cursor = conn.cursor()
