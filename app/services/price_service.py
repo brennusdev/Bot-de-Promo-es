@@ -1,6 +1,6 @@
 from datetime import datetime, timezone
 
-from app.database.connection import get_connection
+from app.database.connection import get_connection, get_placeholder
 
 
 def save_price(product_id, value):
@@ -8,9 +8,10 @@ def save_price(product_id, value):
     conn = get_connection()
     cursor = conn.cursor()
     collected_at = datetime.now(timezone.utc).isoformat()
+    ph = get_placeholder()
 
     cursor.execute(
-        "INSERT INTO prices (product_id, value, collected_at) VALUES (?, ?, ?)",
+        f"INSERT INTO prices (product_id, value, collected_at) VALUES ({ph}, {ph}, {ph})",
         (product_id, float(value), collected_at),
     )
     conn.commit()
@@ -32,7 +33,7 @@ def get_price_history(product_id):
     cursor = conn.cursor()
 
     cursor.execute(
-        "SELECT * FROM prices WHERE product_id = ? ORDER BY collected_at ASC",
+        f"SELECT * FROM prices WHERE product_id = {ph} ORDER BY collected_at ASC",
         (product_id,),
     )
     rows = cursor.fetchall()
@@ -47,7 +48,7 @@ def get_latest_price(product_id):
     cursor = conn.cursor()
 
     cursor.execute(
-        "SELECT * FROM prices WHERE product_id = ? ORDER BY id DESC LIMIT 1",
+        f"SELECT * FROM prices WHERE product_id = {ph} ORDER BY id DESC LIMIT 1",
         (product_id,),
     )
     row = cursor.fetchone()
