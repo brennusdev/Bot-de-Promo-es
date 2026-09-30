@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timezone
 
 from app.database.connection import init_db
 from app.main import process_product
@@ -11,6 +11,6 @@ def check_prices_periodically(urls):
     for url in urls:
         try:
             result = process_product(url)
-            print(f"[{datetime.utcnow()}] Produto atualizado: {result['product']['name']}")
+            print(f"[{datetime.now(timezone.utc).isoformat()}] Produto atualizado: {result['product']['name']}")
         except Exception as exc:
             print(f"Erro ao processar {url}: {exc}")
