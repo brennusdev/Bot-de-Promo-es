@@ -1,4 +1,4 @@
-from app.database.connection import get_connection
+from app.database.connection import get_connection, get_placeholder
 
 
 def normalize_phone(phone):
@@ -16,8 +16,9 @@ def create_user(name=None, phone=None):
 
     conn = get_connection()
     cursor = conn.cursor()
+    ph = get_placeholder()
     cursor.execute(
-        "SELECT * FROM users WHERE phone = ?",
+        f"SELECT * FROM users WHERE phone = {ph}",
         (normalized,),
     )
     existing = cursor.fetchone()
@@ -26,7 +27,7 @@ def create_user(name=None, phone=None):
         return dict(existing)
 
     cursor.execute(
-        "INSERT INTO users (name, phone) VALUES (?, ?)",
+        f"INSERT INTO users (name, phone) VALUES ({ph}, {ph})",
         (name, normalized),
     )
     conn.commit()
@@ -40,7 +41,7 @@ def get_user_by_phone(phone):
     normalized = normalize_phone(phone)
     conn = get_connection()
     cursor = conn.cursor()
-    cursor.execute("SELECT * FROM users WHERE phone = ?", (normalized,))
+    cursor.execute(f"SELECT * FROM users WHERE phone = {get_placeholder()}", (normalized,))
     row = cursor.fetchone()
     conn.close()
     return dict(row) if row else None
@@ -62,11 +63,12 @@ def save_alert(user_id, product_id, threshold_percent=10.0):
         raise ValueError("user_id e product_id são obrigatórios")
 
     threshold = float(threshold_percent)
+    ph = get_placeholder()
 
     conn = get_connection()
     cursor = conn.cursor()
     cursor.execute(
-        "SELECT * FROM alerts WHERE user_id = ? AND product_id = ? AND active = 1",
+        f"SELECT * FROM alerts WHERE user_id = {ph} AND product_id = {ph} AND active = 1",
         (user_id, product_id),
     )
     if cursor.fetchone():
@@ -74,7 +76,7 @@ def save_alert(user_id, product_id, threshold_percent=10.0):
         raise ValueError("alerta já existe para esse usuário e produto")
 
     cursor.execute(
-        "INSERT INTO alerts (user_id, product_id, threshold_percent, active) VALUES (?, ?, ?, 1)",
+        f"INSERT INTO alerts (user_id, product_id, threshold_percent, active) VALUES ({ph}, {ph}, {ph}, 1)",
         (user_id, product_id, threshold),
     )
     conn.commit()
@@ -94,7 +96,7 @@ def list_alerts(user_id):
     conn = get_connection()
     cursor = conn.cursor()
     cursor.execute(
-        "SELECT * FROM alerts WHERE user_id = ? ORDER BY id DESC",
+        f"SELECT * FROM alerts WHERE user_id = {ph} ORDER BY id DESC",
         (user_id,),
     )
     rows = cursor.fetchall()
@@ -107,7 +109,7 @@ def list_alerts_for_product(product_id):
     conn = get_connection()
     cursor = conn.cursor()
     cursor.execute(
-        "SELECT a.*, u.phone, u.name FROM alerts a JOIN users u ON u.id = a.user_id WHERE a.product_id = ? AND a.active = 1",
+        f"SELECT a.*, u.phone, u.name FROM alerts a JOIN users u ON u.id = a.user_id WHERE a.product_id = {ph} AND a.active = 1",
         (product_id,),
     )
     rows = cursor.fetchall()
