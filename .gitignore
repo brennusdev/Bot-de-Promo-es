@@ -1,0 +1,23 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.pytest_cache/
+
+# Dados e logs locais
+data/
+logs/
+*.db
+*.sqlite3
+
+# Ambiente
+.env
+*.env
+!*.env.example
+
+# IDE / SO
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
