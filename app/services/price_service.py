@@ -1,6 +1,6 @@
 from datetime import datetime, timezone
 
-from app.database.connection import get_connection, get_placeholder
+from app.database.connection import get_connection, get_placeholder, supports_returning, fetch_new_id
 
 
 def save_price(product_id, value):
@@ -10,13 +10,13 @@ def save_price(product_id, value):
     collected_at = datetime.now(timezone.utc).isoformat()
     ph = get_placeholder()
 
-    cursor.execute(
-        f"INSERT INTO prices (product_id, value, collected_at) VALUES ({ph}, {ph}, {ph})",
-        (product_id, float(value), collected_at),
-    )
+    insert_sql = f"INSERT INTO prices (product_id, value, collected_at) VALUES ({ph}, {ph}, {ph})"
+    if supports_returning():
+        insert_sql += " RETURNING id"
+    cursor.execute(insert_sql, (product_id, float(value), collected_at))
     conn.commit()
 
-    price_id = cursor.lastrowid
+    price_id = fetch_new_id(cursor)
     conn.close()
 
     return {
@@ -33,7 +33,7 @@ def get_price_history(product_id):
     cursor = conn.cursor()
 
     cursor.execute(
-        f"SELECT * FROM prices WHERE product_id = {ph} ORDER BY collected_at ASC",
+        f"SELECT * FROM prices WHERE product_id = {get_placeholder()} ORDER BY collected_at ASC",
         (product_id,),
     )
     rows = cursor.fetchall()
@@ -48,7 +48,7 @@ def get_latest_price(product_id):
     cursor = conn.cursor()
 
     cursor.execute(
-        f"SELECT * FROM prices WHERE product_id = {ph} ORDER BY id DESC LIMIT 1",
+        f"SELECT * FROM prices WHERE product_id = {get_placeholder()} ORDER BY id DESC LIMIT 1",
         (product_id,),
     )
     row = cursor.fetchone()
