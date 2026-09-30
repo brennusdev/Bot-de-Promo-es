@@ -1,7 +1,36 @@
+import logging
 import re
+import time
 
 import requests
 from bs4 import BeautifulSoup
+
+logger = logging.getLogger("pricebot.collec")
+
+USER_AGENT = (
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
+    "(KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36"
+)
+
+
+def fetch_with_retry(url, attempts=3, timeout=20):
+    """Baixa a página com retries e backoff simples (sites de e-commerce falham com frequência)."""
+    last_error = None
+    for attempt in range(1, attempts + 1):
+        try:
+            response = requests.get(
+                url,
+                timeout=timeout,
+                headers={"User-Agent": USER_AGENT, "Accept-Language": "pt-BR,pt;q=0.9"},
+            )
+            response.raise_for_status()
+            return response
+        except requests.RequestException as exc:
+            last_error = exc
+            if attempt < attempts:
+                time.sleep(2 ** attempt)
+                logger.warning("Tentativa %s/%s falhou para %s: %s", attempt, attempts, url, exc)
+    raise last_error
 
 
 def normalize_price(value):
@@ -61,8 +90,7 @@ def find_price_in_text(text):
 
 def fetch_and_parse_product(url, store_name, market_name, title_selectors, price_selectors):
     """Busca uma página e extrai nome e preço usando seletores por loja."""
-    response = requests.get(url, timeout=20)
-    response.raise_for_status()
+    response = fetch_with_retry(url)
 
     soup = BeautifulSoup(response.text, "html.parser")
 
