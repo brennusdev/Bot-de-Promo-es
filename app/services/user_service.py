@@ -1,4 +1,4 @@
-from app.database.connection import get_connection, get_placeholder
+from app.database.connection import get_connection, get_placeholder, supports_returning, fetch_new_id
 
 
 def normalize_phone(phone):
@@ -26,12 +26,12 @@ def create_user(name=None, phone=None):
         conn.close()
         return dict(existing)
 
-    cursor.execute(
-        f"INSERT INTO users (name, phone) VALUES ({ph}, {ph})",
-        (name, normalized),
-    )
+    insert_sql = f"INSERT INTO users (name, phone) VALUES ({ph}, {ph})"
+    if supports_returning():
+        insert_sql += " RETURNING id"
+    cursor.execute(insert_sql, (name, normalized))
     conn.commit()
-    user_id = cursor.lastrowid
+    user_id = fetch_new_id(cursor)
     conn.close()
     return {"id": user_id, "name": name, "phone": normalized}
 
@@ -68,17 +68,17 @@ def save_alert(user_id, product_id, threshold_percent=10.0):
     conn = get_connection()
     cursor = conn.cursor()
     cursor.execute(
-        f"SELECT * FROM alerts WHERE user_id = {ph} AND product_id = {ph} AND active = 1",
+        f"SELECT * FROM alerts WHERE user_id = {ph} AND product_id = {ph} AND active IS TRUE",
         (user_id, product_id),
     )
     if cursor.fetchone():
         conn.close()
         raise ValueError("alerta já existe para esse usuário e produto")
 
-    cursor.execute(
-        f"INSERT INTO alerts (user_id, product_id, threshold_percent, active) VALUES ({ph}, {ph}, {ph}, 1)",
-        (user_id, product_id, threshold),
-    )
+    insert_sql = f"INSERT INTO alerts (user_id, product_id, threshold_percent, active) VALUES ({ph}, {ph}, {ph}, TRUE)"
+    if supports_returning():
+        insert_sql += " RETURNING id"
+    cursor.execute(insert_sql, (user_id, product_id, threshold))
     conn.commit()
     alert_id = cursor.lastrowid
     conn.close()
@@ -96,7 +96,7 @@ def list_alerts(user_id):
     conn = get_connection()
     cursor = conn.cursor()
     cursor.execute(
-        f"SELECT * FROM alerts WHERE user_id = {ph} ORDER BY id DESC",
+        f"SELECT * FROM alerts WHERE user_id = {get_placeholder()} ORDER BY id DESC",
         (user_id,),
     )
     rows = cursor.fetchall()
@@ -109,7 +109,7 @@ def list_alerts_for_product(product_id):
     conn = get_connection()
     cursor = conn.cursor()
     cursor.execute(
-        f"SELECT a.*, u.phone, u.name FROM alerts a JOIN users u ON u.id = a.user_id WHERE a.product_id = {ph} AND a.active = 1",
+        f"SELECT a.*, u.phone, u.name FROM alerts a JOIN users u ON u.id = a.user_id WHERE a.product_id = {get_placeholder()} AND a.active IS TRUE",
         (product_id,),
     )
     rows = cursor.fetchall()

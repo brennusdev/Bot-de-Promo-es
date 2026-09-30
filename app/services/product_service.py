@@ -1,31 +1,34 @@
 import json
 
-from app.database.connection import get_connection
+from app.database.connection import get_connection, get_placeholder, supports_returning, fetch_new_id
 
 
 def save_product(name, url, store, market="mercado", specifications=None, reference_price=0, promotion_score=0):
     """Salva o produto no banco. Se já existir, retorna o existente."""
     conn = get_connection()
     cursor = conn.cursor()
+    ph = get_placeholder()
 
     specs = json.dumps(specifications or {}, ensure_ascii=False)
 
     cursor.execute(
-        "SELECT * FROM products WHERE url = ?",
+        f"SELECT * FROM products WHERE url = {ph}",
         (url,),
     )
     product = cursor.fetchone()
 
     if product is None:
-        cursor.execute(
-            """
+        insert_sql = f"""
             INSERT INTO products (name, url, store, market, specifications, reference_price, promotion_score)
-            VALUES (?, ?, ?, ?, ?, ?, ?)
-            """,
+            VALUES ({ph}, {ph}, {ph}, {ph}, {ph}, {ph}, {ph})
+            """
+        if supports_returning():
+            insert_sql += " RETURNING id"
+        cursor.execute(insert_sql,
             (name, url, store, market, specs, float(reference_price), int(promotion_score)),
         )
         conn.commit()
-        product_id = cursor.lastrowid
+        product_id = fetch_new_id(cursor)
         product = {
             "id": product_id,
             "name": name,
@@ -51,7 +54,7 @@ def get_product_by_url(url):
     cursor = conn.cursor()
 
     cursor.execute(
-        "SELECT * FROM products WHERE url = ?",
+        f"SELECT * FROM products WHERE url = {get_placeholder()}",
         (url,),
     )
     product = cursor.fetchone()
