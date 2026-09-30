@@ -1,6 +1,7 @@
 import logging
 import time
 
+from app.collec.router import get_product_data_for_url
 from app.config.settings import REDIS_URL
 from app.logging_config import configure_logging
 from app.services.monitor_service import monitor_all_products
@@ -10,15 +11,12 @@ logger = logging.getLogger("pricebot.worker")
 
 
 def fetch_current_price_for_url(url: str, fallback_price: float = 0.0):
-    """Busca o preço atual de uma URL. Implementação simples para manter o worker robusto."""
+    """Busca o preço atual de uma URL usando o coletor da loja correspondente."""
     try:
-        import requests
-
-        response = requests.get(url, timeout=15)
-        response.raise_for_status()
-        return float(response.text or fallback_price)
+        data = get_product_data_for_url(url)
+        return float(data.get("price") or fallback_price)
     except Exception:
-        logger.warning("Falha ao obter preço da URL %s; usando fallback 0.0", url)
+        logger.warning("Falha ao obter preço da URL %s; usando fallback %s", url, fallback_price)
         return fallback_price
 
 

@@ -1,4 +1,6 @@
+from app.bot.handlers import handle_message
 from app.config.settings import WHATSAPP_WEBHOOK_VERIFY_TOKEN
+from app.main import process_product
 
 
 def verify_whatsapp_webhook(mode, token):
@@ -9,7 +11,7 @@ def verify_whatsapp_webhook(mode, token):
 
 
 def process_whatsapp_webhook(payload):
-    """Processa mensagens recebidas pelo WhatsApp de forma segura."""
+    """Processa mensagens recebidas pelo WhatsApp e encadeia com o bot."""
     if not isinstance(payload, dict):
         return {"status": "invalid_payload"}
 
@@ -29,10 +31,20 @@ def process_whatsapp_webhook(payload):
                 text = message.get("text", {}).get("body", "") if isinstance(message.get("text"), dict) else ""
                 from_phone = message.get("from")
                 if text:
+                    result = handle_message(text)
+
+                    if result.get("status") == "product_url_received":
+                        try:
+                            product_data = process_product(text)
+                            result["product"] = product_data["product"]
+                            result["price"] = product_data["price"]
+                        except Exception as exc:
+                            result = {"status": "product_error", "error": str(exc)}
+
                     return {
-                        "status": "message_received",
+                        "status": result.get("status", "message_received"),
                         "from": from_phone,
-                        "text": text,
+                        "reply": result,
                     }
 
     return {"status": "no_message"}
