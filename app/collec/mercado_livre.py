@@ -1,47 +1,36 @@
-import re
+# REVISÃO (comentário de estudo):
+# Antes este módulo fazia requests.get() direto, SEM:
+#   - retries com backoff (sites de e-commerce falham seguido);
+#   - User-Agent de navegador (sem isso o Mercado Livre pode bloquear com 403);
+#   - fallback quando o preço não é encontrado (a coleta inteira quebrava).
+# Os outros coletores (Amazon, KaBuM etc.) usam fetch_and_parse_product() do
+# common.py, que já resolve tudo isso. Este módulo agora segue o MESMO padrão,
+# herdando retries, UA e tolerância a falha de preço — e ainda garante as
+# chaves "market", "specifications", "reference_price" e "promotion_score" no
+# retorno, que o fluxo principal (app/main.py) espera.
 
-import requests
-from bs4 import BeautifulSoup
-
-
-def _parse_price_text(value):
-    """Converte textos de preço em float com tolerância a variações de formatacao."""
-    if not value:
-        raise ValueError("Preço não encontrado")
-
-    cleaned = re.sub(r"[^0-9,\.]", "", value)
-    if not cleaned:
-        raise ValueError("Preço inválido")
-
-    if cleaned.count(",") > 0 and cleaned.count(".") == 0:
-        cleaned = cleaned.replace(",", ".")
-    elif cleaned.count(".") > 0 and cleaned.count(",") > 0:
-        cleaned = cleaned.replace(".", "").replace(",", ".")
-
-    return float(cleaned)
+from app.collec.common import fetch_and_parse_product
 
 
 def get_product_data(url):
     """Coleta os dados básicos de um produto em uma página do Mercado Livre."""
-    response = requests.get(url, timeout=15)
-    response.raise_for_status()
-
-    soup = BeautifulSoup(response.text, "html.parser")
-
-    name_tag = soup.find("h1")
-    if not name_tag:
-        raise ValueError("Não foi possível encontrar o nome do produto.")
-    name = name_tag.get_text(strip=True)
-
-    price_tag = soup.select_one(".price-tag") or soup.select_one(".andes-money-amount__fraction") or soup.select_one(".andes-money-amount__fraction")
-    if not price_tag:
-        raise ValueError("Não foi possível encontrar o preço do produto.")
-
-    price_value = _parse_price_text(price_tag.get_text(strip=True))
-
-    return {
-        "name": name,
-        "price": price_value,
-        "url": url,
-        "store": "Mercado Livre",
-    }
+    return fetch_and_parse_product(
+        url=url,
+        store_name="Mercado Livre",
+        market_name="mercado_livre",
+        title_selectors=[
+            # Título principal da página de produto.
+            "h1",
+            # Fallback via metatag, compartilhada por todos os e-commerces.
+            "meta[property='og:title']",
+            # Nome exibido no card de resultado de busca.
+            ".poly-component__title",
+        ],
+        price_selectors=[
+            # Fração do preço no componente novo do Mercado Livre
+            # (ex.: "8.599" em "R$ 8.599,00").
+            ".andes-money-amount__fraction",
+            # Componente antigo de preço, ainda presente em várias páginas.
+            ".price-tag-fraction",
+        ],
+    )
