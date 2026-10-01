@@ -18,7 +18,7 @@ def detect_store_from_url(url):
 
     if "amazon" in host:
         return "amazon"
-    if "mercadolivre" in host or "mlb" in host:
+    if "mercadolivre" in host or "mercadolibre" in host:
         return "mercado_livre"
     if "kabum" in host:
         return "kabum"
