@@ -13,8 +13,9 @@ def get_product_data(url):
             ".product-title",
         ],
         price_selectors=[
-            ".[data-testid='price']",
-            ".price",
+            "[data-testid='price']",
+            "[data-testid='price-value']",
+            ".price__current",
             ".product-price",
             "span[content]",
         ],
