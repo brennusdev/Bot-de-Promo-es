@@ -67,21 +67,6 @@ def ensure_sqlite_migrations(conn):
         "users": [
             ("created_at", "TEXT DEFAULT CURRENT_TIMESTAMP"),
         ],
-        "products": [
-            ("market", "TEXT DEFAULT 'mercado'"),
-            ("specifications", "TEXT DEFAULT '{}'"),
-            ("reference_price", "REAL DEFAULT 0"),
-            ("promotion_score", "INTEGER DEFAULT 0"),
-            ("created_at", "TEXT DEFAULT CURRENT_TIMESTAMP"),
-        ],
-        "alerts": [
-            ("threshold_percent", "REAL DEFAULT 10.0"),
-            ("active", "INTEGER DEFAULT 1"),
-            ("created_at", "TEXT DEFAULT CURRENT_TIMESTAMP"),
-        ],
-        "users": [
-            ("created_at", "TEXT DEFAULT CURRENT_TIMESTAMP"),
-        ],
         "prices": [
             ("collected_at", "TEXT DEFAULT CURRENT_TIMESTAMP"),
         ],
