@@ -1,11 +1,18 @@
 fastapi==0.115.6
 pydantic>=2.9,<3
-uvicorn[standard]==0.30.6
-httpx==0.27.2
-requests==2.32.2
-beautifulsoup4==4.12.3
-matplotlib==3.9.2
-redis==5.0.8
-psycopg[binary]==3.2.1
-pytest==8.3.2
-python-dotenv==1.0.1
+# REVISÃO: uvicorn 0.30.6 não suporta Python 3.13+; 0.34+ sim.
+uvicorn[standard]>=0.34.0,<1
+# REVISÃO: httpx 0.27.2 é antigo; 0.28+ corrige compat com Py3.13/3.14.
+httpx>=0.27.2,<1
+# REVISÃO: requests 2.32.2 antigo; constraints relaxadas para Py3.13/3.14.
+requests>=2.32.2,<3
+# REVISÃO: beautifulsoup4 4.12.3 antigo; 4.13+ tem wheels para Py3.13/3.14.
+beautifulsoup4>=4.13.0,<5
+# REVISÃO: matplotlib 3.9.2 não tem wheel para Python 3.14 e quebra o pip install.
+# Versões >= 3.10.6 publicam wheels para Python 3.13/3.14.
+matplotlib>=3.10.6,<4
+# REVISÃO: redis 5.0.8 é antigo e conflitante; constraints relaxadas para compatibilidade multi-Python.
+redis>=5.0.8,<7
+psycopg[binary]>=3.2.1,<4
+pytest>=8.3.2,<9
+python-dotenv>=1.0.1,<2
