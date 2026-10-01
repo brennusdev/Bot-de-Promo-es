@@ -10,7 +10,7 @@ def handle_message(message):
             "status": "started",
         }
 
-    if text.startswith("http://") or text.startswith("https://"):
+    if text.startswith(("http://", "https://")):
         return {
             "text": text,
             "status": "product_url_received",
