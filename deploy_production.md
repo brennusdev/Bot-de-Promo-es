@@ -15,10 +15,17 @@ Use o arquivo `deploy-production.env.example` como base.
 ### Obrigatórias
 - `APP_ENV=production`
 - `DATABASE_URL`
-- `REDIS_URL`
 - `WHATSAPP_TOKEN`
 - `WHATSAPP_PHONE_NUMBER_ID`
 - `WHATSAPP_WEBHOOK_VERIFY_TOKEN`
+
+### Opcionais / condicionais
+- `REDIS_URL` — só é OBRIGATÓRIA se você quiser exigir Redis no healthcheck.
+  Nesse caso, defina também `REDIS_REQUIRED=true`.
+  Comportamento do `/health` (REVISÃO):
+  - Banco fora            -> 503 (crítico)
+  - Redis fora, sem REDIS_REQUIRED -> 200 com status "degraded"
+  - Redis fora, com REDIS_REQUIRED -> 503
 
 ## 3) Serviços
 
