@@ -13,9 +13,9 @@ def get_product_data(url):
             ".product-name",
         ],
         price_selectors=[
+            "h4#listing-purchase-price",
             ".final-price",
             ".price-current",
-            ".prices .price",
             "span[content]",
         ],
     )
