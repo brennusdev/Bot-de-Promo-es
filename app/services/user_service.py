@@ -80,7 +80,7 @@ def save_alert(user_id, product_id, threshold_percent=10.0):
         insert_sql += " RETURNING id"
     cursor.execute(insert_sql, (user_id, product_id, threshold))
     conn.commit()
-    alert_id = cursor.lastrowid
+    alert_id = fetch_new_id(cursor)
     conn.close()
     return {
         "id": alert_id,
