@@ -17,6 +17,11 @@ BOT_TOKEN = os.getenv("BOT_TOKEN", "")
 WHATSAPP_TOKEN = os.getenv("WHATSAPP_TOKEN", "")
 WHATSAPP_PHONE_NUMBER_ID = os.getenv("WHATSAPP_PHONE_NUMBER_ID", "")
 WHATSAPP_WEBHOOK_VERIFY_TOKEN = os.getenv("WHATSAPP_WEBHOOK_VERIFY_TOKEN", "")
+# ESTUDO: a Meta assina cada POST do webhook com HMAC-SHA256 usando o App Secret.
+# Sem verificar, qualquer pessoa pode forjar mensagens no seu webhook (spoofing).
+# Em desenvolvimento o secret pode ficar vazio (verificação desativada);
+# em produção, sem secret configurado, o POST é rejeitado.
+WHATSAPP_APP_SECRET = os.getenv("WHATSAPP_APP_SECRET", "")
 
 CHECK_INTERVAL_MINUTES = int(os.getenv("CHECK_INTERVAL_MINUTES", "30"))
 API_PORT = int(os.getenv("API_PORT", "8000"))
