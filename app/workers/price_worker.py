@@ -1,7 +1,7 @@
 import logging
 import time
 
-from app.collec.router import get_product_data_for_url
+from app.collectors.router import get_product_data_for_url
 from app.config.settings import REDIS_URL
 from app.logging_config import configure_logging
 from app.services.monitor_service import monitor_all_products
