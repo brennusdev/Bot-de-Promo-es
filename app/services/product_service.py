@@ -63,12 +63,22 @@ def get_product_by_url(url):
     return dict(product) if product else None
 
 
-def list_products():
-    """Lista todos os produtos cadastrados."""
+def list_products(limit=None, offset=0):
+    """Lista produtos cadastrados com paginação opcional.
+
+    ESTUDO (API): sem paginação, a lista cresce indefinidamente e o
+    endpoint fica lento. limit/offset permitem o dashboard carregar aos
+    poucos (ex.: ?limit=20&offset=40). limit=None mantém compatibilidade.
+    """
     conn = get_connection()
     cursor = conn.cursor()
 
-    cursor.execute("SELECT * FROM products ORDER BY id DESC")
+    ph = get_placeholder()
+    sql = "SELECT * FROM products ORDER BY id DESC"
+    params = []
+    if limit is not None:
+        sql += f" LIMIT {int(limit)} OFFSET {int(offset)}"
+    cursor.execute(sql, tuple(params))
     products = cursor.fetchall()
 
     conn.close()
