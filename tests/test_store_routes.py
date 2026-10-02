@@ -1,4 +1,4 @@
-from app.collec.router import detect_store_from_url
+from app.collectors.router import detect_store_from_url
 
 
 def test_detect_store_from_url_for_all_supported_markets():
