@@ -47,6 +47,57 @@ def fetch_new_id(cursor):
     return cursor.lastrowid
 
 
+def ensure_indexes(conn):
+    """Cria índices de performance para as consultas mais frequentes.
+
+    ESTUDO (banco): a tabela prices cresce indefinidamente e quase toda
+    consulta filtra por product_id e ordena por collected_at/id. Sem índice,
+    cada busca vira um table scan — com milhares de registros o dashboard
+    e o worker ficam visivelmente lentos.
+    """
+    cursor = conn.cursor()
+    backend = get_database_backend()
+
+    if backend == "postgresql":
+        cursor.execute("CREATE INDEX IF NOT EXISTS idx_prices_product_id ON prices (product_id, id DESC)")
+        cursor.execute("CREATE INDEX IF NOT EXISTS idx_prices_collected_at ON prices (collected_at)")
+        cursor.execute("CREATE INDEX IF NOT EXISTS idx_alerts_user_product ON alerts (user_id, product_id)")
+        cursor.execute("CREATE INDEX IF NOT EXISTS idx_alerts_product ON alerts (product_id)")
+    else:
+        cursor.execute("CREATE INDEX IF NOT EXISTS idx_prices_product_id ON prices (product_id, id DESC)")
+        cursor.execute("CREATE INDEX IF NOT EXISTS idx_prices_collected_at ON prices (collected_at)")
+        cursor.execute("CREATE INDEX IF NOT EXISTS idx_alerts_user_product ON alerts (user_id, product_id)")
+        cursor.execute("CREATE INDEX IF NOT EXISTS idx_alerts_product ON alerts (product_id)")
+
+    conn.commit()
+
+
+def cleanup_old_prices(days_to_keep=90):
+    """Remove registros de preços mais antigos que X dias (retenção de dados).
+
+    Sem isso, a tabela prices cresce para sempre e o banco fica enorme.
+    O worker chama isso a cada ciclo; 90 dias é um padrão razoável.
+    """
+    conn = get_connection()
+    cursor = conn.cursor()
+    ph = get_placeholder()
+    backend = get_database_backend()
+
+    if backend == "postgresql":
+        cursor.execute(
+            f"DELETE FROM prices WHERE collected_at < NOW() - INTERVAL '{int(days_to_keep)} days'")
+    else:
+        from datetime import datetime, timedelta, timezone
+        cutoff = (datetime.now(timezone.utc) - timedelta(days=days_to_keep)).isoformat()
+        cursor.execute(
+            f"DELETE FROM prices WHERE collected_at < {ph}", (cutoff,))
+
+    deleted = cursor.rowcount
+    conn.commit()
+    conn.close()
+    return deleted
+
+
 def ensure_sqlite_migrations(conn):
     """Adiciona colunas faltantes em bancos SQLite já existentes."""
     cursor = conn.cursor()
@@ -192,6 +243,8 @@ def init_db():
         )
 
         ensure_sqlite_migrations(conn)
+
+    ensure_indexes(conn)
 
     conn.commit()
     conn.close()
