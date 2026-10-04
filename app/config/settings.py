@@ -11,7 +11,9 @@ IS_PRODUCTION = APP_ENV == "production"
 
 DB_PATH = Path(os.getenv("DATABASE_PATH", str(BASE_DIR / "data" / "price_bot.db")))
 DATABASE_URL = os.getenv("DATABASE_URL", "") or os.getenv("POSTGRES_URL", "")
-REDIS_URL = os.getenv("REDIS_URL", "redis://localhost:6379/0")
+
+# NOTA: Redis foi removido — nenhum código o utilizava. Se reintroduzir um
+# cache, volte com REDIS_URL aqui e no docker-compose.
 
 BOT_TOKEN = os.getenv("BOT_TOKEN", "")
 WHATSAPP_TOKEN = os.getenv("WHATSAPP_TOKEN", "")
