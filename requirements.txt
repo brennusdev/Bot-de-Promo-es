@@ -12,7 +12,7 @@ beautifulsoup4>=4.13.0,<5
 # Versões >= 3.10.6 publicam wheels para Python 3.13/3.14.
 matplotlib>=3.10.6,<4
 # REVISÃO: redis 5.0.8 é antigo e conflitante; constraints relaxadas para compatibilidade multi-Python.
-redis>=5.0.8,<7
+# NOTA: redis removido — nenhum código o utilizava. Reintroduza se adicionar cache.
 psycopg[binary]>=3.2.1,<4
 pytest>=8.3.2,<9
 python-dotenv>=1.0.1,<2
