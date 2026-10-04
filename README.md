@@ -76,7 +76,6 @@ A estrutura recomendada para produção é:
 - API: Render ou Railway
 - Worker: serviço separado em Render/Railway ou VPS
 - Banco: PostgreSQL externo
-- Redis: serviço externo
 - Monitoramento: health checks + logs
 
 Fluxo recomendado:
@@ -84,8 +83,11 @@ Fluxo recomendado:
 1. Vercel hospeda o dashboard e frontend
 2. Render/Railway hospeda a API FastAPI
 3. worker roda em outro serviço e executa a checagem periódica de preços
-4. PostgreSQL e Redis ficam externos e seguros
+4. PostgreSQL fica externo e seguro
 5. WhatsApp usa HTTPS e webhook público válido
+
+> Nota: o Redis foi removido da stack — nenhum código o utilizava. Se adicionar
+> cache no futuro, reintroduza `REDIS_URL` no settings e no docker-compose.
 
 ## Docker Compose completo
 
