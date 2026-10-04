@@ -1,6 +1,5 @@
 from app.collectors.router import get_product_data_for_url
 from app.database.connection import init_db
-from app.services.price_service import save_price
 from app.services.product_service import save_product
 
 
