@@ -55,3 +55,24 @@ def get_latest_price(product_id):
 
     conn.close()
     return dict(row) if row else None
+
+
+def get_recent_prices(product_id, count=2):
+    """Retorna os `count` últimos preços, do mais antigo para o mais novo.
+
+    ESTUDO (performance): o dashboard só precisa do preço atual + anterior
+    para calcular variação. Buscar o histórico inteiro (que pode ter milhares
+    de registros após meses de worker) é desperdício; com o índice
+    idx_prices_product_id essa consulta é O(log n).
+    """
+    conn = get_connection()
+    cursor = conn.cursor()
+
+    cursor.execute(
+        f"SELECT * FROM prices WHERE product_id = {get_placeholder()} ORDER BY id DESC LIMIT {int(count)}",
+        (product_id,),
+    )
+    rows = cursor.fetchall()
+
+    conn.close()
+    return [dict(row) for row in reversed(rows)]
