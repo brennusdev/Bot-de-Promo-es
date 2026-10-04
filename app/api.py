@@ -12,7 +12,7 @@ from app.health import register_health_checks
 from app.logging_config import configure_logging
 from app.schemas import AlertCreate, ProductCreate, UserCreate
 from app.services.alert_service import calculate_price_change
-from app.services.price_service import get_latest_price, get_price_history
+from app.services.price_service import get_latest_price, get_price_history, get_recent_prices
 from app.services.product_service import list_products
 from app.services.user_service import create_user, list_users, save_alert, list_alerts
 from app.services.whatsapp_service import (
@@ -52,14 +52,15 @@ def get_products(limit: int | None = None, offset: int = 0):
     products = list_products(limit=limit, offset=offset)
     enriched = []
     for product in products:
-        latest = get_latest_price(product["id"])
-        current_price = float(latest["value"]) if latest else float(product.get("reference_price") or 0)
-        previous = None
-        history = get_price_history(product["id"])
-        if len(history) >= 2:
-            previous = float(history[-2]["value"])
-        elif len(history) == 1:
-            previous = float(history[0]["value"])
+        recent = get_recent_prices(product["id"], count=2)
+
+        # ESTUDO (performance): antes isso buscava o histórico COMPLETO de cada
+        # produto (uma query por produto, com milhares de linhas). Agora busca
+        # só os 2 últimos preços — o índice idx_prices_product_id torna isso barato.
+        current_price = float(recent[-1]["value"]) if recent else float(product.get("reference_price") or 0)
+        previous = float(recent[-2]["value"]) if len(recent) >= 2 else (recent[0]["value"] if recent else None)
+        if previous is not None:
+            previous = float(previous)
 
         change = calculate_price_change(current_price, previous)
         product["current_price"] = current_price
