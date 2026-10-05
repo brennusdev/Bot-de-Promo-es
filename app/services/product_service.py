@@ -88,6 +88,20 @@ def get_product_by_url(url):
     return dict(product) if product else None
 
 
+def update_promotion_score(product_id, score):
+    """Atualiza o score de promoção de um produto após novo ciclo de coleta."""
+    conn = get_connection()
+    cursor = conn.cursor()
+    ph = get_placeholder()
+    cursor.execute(
+        f"UPDATE products SET promotion_score = {ph} WHERE id = {ph}",
+        (int(score), product_id),
+    )
+    conn.commit()
+    conn.close()
+    return int(score)
+
+
 def delete_product(product_id):
     """Remove um produto e seus registros dependentes (preços e alertas).
 

@@ -3,10 +3,11 @@
 
 import time
 
+from app.analyzer.promotion_score import promotion_summary
 from app.services.alert_dispatcher import dispatch_alerts_for_product
 from app.services.alert_service import check_product_alert
 from app.services.price_service import save_price
-from app.services.product_service import list_products
+from app.services.product_service import list_products, update_promotion_score
 
 
 def monitor_all_products(get_current_price_function, delay_seconds=0):
@@ -28,6 +29,11 @@ def monitor_all_products(get_current_price_function, delay_seconds=0):
         # Não poluir o histórico quando a coleta falha (preço 0 ou negativo).
         if current_price and current_price > 0:
             save_price(product["id"], current_price)
+
+            # ESTUDO (promoção): score calculado contra o preço de referência
+            # da primeira coleta. O dashboard usa isso para o selo "Promoção".
+            summary = promotion_summary(current_price, product.get("reference_price") or 0)
+            update_promotion_score(product["id"], summary["score"])
 
         dispatch = dispatch_alerts_for_product(product, current_price)
 
