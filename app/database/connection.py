@@ -56,18 +56,13 @@ def ensure_indexes(conn):
     e o worker ficam visivelmente lentos.
     """
     cursor = conn.cursor()
-    backend = get_database_backend()
 
-    if backend == "postgresql":
-        cursor.execute("CREATE INDEX IF NOT EXISTS idx_prices_product_id ON prices (product_id, id DESC)")
-        cursor.execute("CREATE INDEX IF NOT EXISTS idx_prices_collected_at ON prices (collected_at)")
-        cursor.execute("CREATE INDEX IF NOT EXISTS idx_alerts_user_product ON alerts (user_id, product_id)")
-        cursor.execute("CREATE INDEX IF NOT EXISTS idx_alerts_product ON alerts (product_id)")
-    else:
-        cursor.execute("CREATE INDEX IF NOT EXISTS idx_prices_product_id ON prices (product_id, id DESC)")
-        cursor.execute("CREATE INDEX IF NOT EXISTS idx_prices_collected_at ON prices (collected_at)")
-        cursor.execute("CREATE INDEX IF NOT EXISTS idx_alerts_user_product ON alerts (user_id, product_id)")
-        cursor.execute("CREATE INDEX IF NOT EXISTS idx_alerts_product ON alerts (product_id)")
+    # ESTUDO: os índices são idênticos no SQLite e no PostgreSQL — um único
+    # conjunto de statements serve para ambos os backends.
+    cursor.execute("CREATE INDEX IF NOT EXISTS idx_prices_product_id ON prices (product_id, id DESC)")
+    cursor.execute("CREATE INDEX IF NOT EXISTS idx_prices_collected_at ON prices (collected_at)")
+    cursor.execute("CREATE INDEX IF NOT EXISTS idx_alerts_user_product ON alerts (user_id, product_id)")
+    cursor.execute("CREATE INDEX IF NOT EXISTS idx_alerts_product ON alerts (product_id)")
 
     conn.commit()
 
@@ -105,6 +100,7 @@ def ensure_sqlite_migrations(conn):
     for table, columns in {
         "products": [
             ("market", "TEXT DEFAULT 'mercado'"),
+            ("category", "TEXT DEFAULT 'outros'"),
             ("specifications", "TEXT DEFAULT '{}'"),
             ("reference_price", "REAL DEFAULT 0"),
             ("promotion_score", "INTEGER DEFAULT 0"),
@@ -148,6 +144,7 @@ def init_db():
                 url TEXT NOT NULL UNIQUE,
                 store VARCHAR(120) NOT NULL,
                 market VARCHAR(80) DEFAULT 'mercado',
+                category VARCHAR(60) DEFAULT 'outros',
                 specifications JSONB DEFAULT '{}',
                 reference_price NUMERIC(12,2) DEFAULT 0,
                 promotion_score INTEGER DEFAULT 0,
@@ -196,6 +193,7 @@ def init_db():
                 url TEXT NOT NULL UNIQUE,
                 store TEXT NOT NULL,
                 market TEXT DEFAULT 'mercado',
+                category TEXT DEFAULT 'outros',
                 specifications TEXT DEFAULT '{}',
                 reference_price REAL DEFAULT 0,
                 promotion_score INTEGER DEFAULT 0,
