@@ -3,6 +3,7 @@ import os
 import time
 
 from app.collectors.router import get_product_data_for_url
+from app.config.settings import CHECK_INTERVAL_MINUTES
 from app.database.connection import cleanup_old_prices, init_db
 from app.logging_config import configure_logging
 from app.services.monitor_service import monitor_all_products
@@ -27,8 +28,16 @@ def fetch_current_price_for_url(url: str, fallback_price: float = 0.0):
         return fallback_price
 
 
-def run_worker(loop_seconds: int = 300):
-    """Loop principal do worker de monitoramento."""
+def run_worker(loop_seconds: int | None = None):
+    """Loop principal do worker de monitoramento.
+
+    ESTUDO (config): o intervalo padrão agora vem de CHECK_INTERVAL_MINUTES
+    (.env), em minutos — antes o loop fixo de 300s ignorava essa variável
+    e qualquer ajuste no .env não tinha efeito.
+    """
+    if loop_seconds is None:
+        loop_seconds = CHECK_INTERVAL_MINUTES * 60
+
     configure_logging()
     init_db()
     logger.info("Worker iniciado (intervalo: %ss, retenção: %sdias)", loop_seconds, PRICE_RETENTION_DAYS)
