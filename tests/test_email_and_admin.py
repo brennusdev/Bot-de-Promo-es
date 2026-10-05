@@ -58,10 +58,9 @@ def test_send_notification_sem_email_config(monkeypatch):
 
 
 def test_send_notification_com_email(monkeypatch):
-    monkeypatch.setattr("app.services.email_service.SMTP_HOST", "smtp.test.com")
-    monkeypatch.setattr("app.services.email_service.ALERT_EMAIL_FROM", "bot@test.com")
-    monkeypatch.setattr("app.services.email_service.ALERT_EMAIL_TO", ["user@test.com"])
-    monkeypatch.setattr("app.services.email_service.send_email", lambda s, b: True)
+    # Patches o símbolo importado em notification_service (não o original).
+    monkeypatch.setattr("app.services.notification_service.email_enabled", lambda: True)
+    monkeypatch.setattr("app.services.notification_service.send_email", lambda s, b: True)
 
     result = send_notification(1, "msg", product_info={
         "product_name": "Produto Y", "current_price": 50, "drop_percent": 12, "product_url": "u",
