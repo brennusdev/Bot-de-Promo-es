@@ -14,8 +14,9 @@ DATABASE_URL = os.getenv("DATABASE_URL", "") or os.getenv("POSTGRES_URL", "")
 
 # NOTA: Redis foi removido — nenhum código o utilizava. Se reintroduzir um
 # cache, volte com REDIS_URL aqui e no docker-compose.
-
-BOT_TOKEN = os.getenv("BOT_TOKEN", "")
+# NOTA: integração de mensageria (Telegram/WhatsApp) foi removida — o acesso
+# do cliente agora é pela página web (dashboard). Se recriar um canal,
+# adicione as variáveis aqui e um adapter em app/services.
 
 CHECK_INTERVAL_MINUTES = int(os.getenv("CHECK_INTERVAL_MINUTES", "30"))
 API_PORT = int(os.getenv("API_PORT", "8000"))
