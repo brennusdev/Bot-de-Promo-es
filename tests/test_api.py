@@ -96,7 +96,89 @@ def test_products_endpoint_empty(client):
     assert resp.json() == []
 
 
-def test_categories_endpoint(client, monkeypatch):
+def test_admin_login_required(client, monkeypatch):
+    """Com ADMIN_PASSWORD configurado, escrita exige token e login valida."""
+    import app.api as api_module
+
+    monkeypatch.setattr(api_module, "ADMIN_PASSWORD", "segredo123")
+
+    # Sem token: cadastro é bloqueado (401)
+    resp = client.post("/products", json={"url": "https://www.kabum.com.br/x"})
+    assert resp.status_code == 401
+
+    # Login correto devolve ok
+    login = client.post("/admin/login", json={"password": "segredo123"})
+    assert login.status_code == 200
+
+    # Login errado: 401
+    login_bad = client.post("/admin/login", json={"password": "errada"})
+    assert login_bad.status_code == 401
+
+    # Com o token correto, cadastro passa (coleta mockada)
+    from unittest.mock import patch
+    fake_data = {
+        "name": "Teclado Redragon", "price": 150.0,
+        "url": "https://www.kabum.com.br/teclado-rd", "store": "KaBuM",
+        "market": "kabum", "specifications": {},
+        "reference_price": 150.0, "promotion_score": 0,
+    }
+    with patch("app.main.get_product_data_for_url", return_value=fake_data):
+        ok = client.post(
+            "/products",
+            json={"url": "https://www.kabum.com.br/teclado-rd"},
+            headers={"X-Admin-Token": "segredo123"},
+        )
+    assert ok.status_code == 201
+
+
+def test_admin_login_sem_senha_configurada(client, monkeypatch):
+    """Sem ADMIN_PASSWORD (dev), login sempre ok e escrita aberta."""
+    import app.api as api_module
+    monkeypatch.setattr(api_module, "ADMIN_PASSWORD", "")
+    login = client.post("/admin/login", json={"password": "qualquer"})
+    assert login.status_code == 200
+    assert login.json()["required"] is False
+
+
+def test_rate_limit(client, monkeypatch):
+    """POST excedendo o limite por IP recebe 429."""
+    import app.api as api_module
+    monkeypatch.setattr(api_module, "RATE_LIMIT_MAX_REQUESTS", "2" if False else 2)
+    monkeypatch.setattr(api_module, "RATE_LIMIT_WINDOW_SECONDS", 60)
+    api_module._rate_limit_hits.clear()
+
+    # TestClient usa host "testclient" — 3ª requisição deve bloquear.
+    codes = []
+    for _ in range(3):
+        resp = client.post("/products", json={"url": "https://www.kabum.com.br/rl"})
+        codes.append(resp.status_code)
+    assert codes[2] == 429
+
+
+def test_promotion_score_atualizado_no_ciclo(client, monkeypatch):
+    """O ciclo de monitoramento recalcula o score de promoção."""
+    from unittest.mock import patch
+
+    from app.services.monitor_service import monitor_all_products
+    from app.services.product_service import get_product_by_id
+
+    fake_data = {
+        "name": "Monitor LG 27", "price": 900.0,
+        "url": "https://www.pichau.com.br/monitor-lg", "store": "Pichau",
+        "market": "pichau", "specifications": {},
+        "reference_price": 1200.0, "promotion_score": 0,
+    }
+    with patch("app.main.get_product_data_for_url", return_value=fake_data):
+        created = client.post("/products", json={"url": fake_data["url"]}).json()
+    product_id = created["product"]["id"]
+
+    # Preço caiu 25% em relação à referência -> score 3
+    with patch("app.main.get_product_data_for_url", return_value={**fake_data, "price": 900.0}):
+        results = monitor_all_products(lambda url: 900.0)
+    assert results, "ciclo deve processar pelo menos um produto"
+
+    product = get_product_by_id(product_id)
+    assert product["promotion_score"] == 3
     """Categorias aparecem com contagem após cadastrar produtos."""
     from unittest.mock import patch
 
