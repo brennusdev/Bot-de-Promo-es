@@ -6,7 +6,6 @@
 - API: Render ou Railway
 - Worker: Render/Railway ou VPS
 - PostgreSQL: serviço externo
-- Redis: serviço externo
 
 ## 2) Variáveis de ambiente
 
@@ -15,17 +14,11 @@ Use o arquivo `deploy-production.env.example` como base.
 ### Obrigatórias
 - `APP_ENV=production`
 - `DATABASE_URL`
-- `WHATSAPP_TOKEN`
-- `WHATSAPP_PHONE_NUMBER_ID`
-- `WHATSAPP_WEBHOOK_VERIFY_TOKEN`
 
-### Opcionais / condicionais
-- `REDIS_URL` — só é OBRIGATÓRIA se você quiser exigir Redis no healthcheck.
-  Nesse caso, defina também `REDIS_REQUIRED=true`.
-  Comportamento do `/health` (REVISÃO):
-  - Banco fora            -> 503 (crítico)
-  - Redis fora, sem REDIS_REQUIRED -> 200 com status "degraded"
-  - Redis fora, com REDIS_REQUIRED -> 503
+### Opcionais
+- `CHECK_INTERVAL_MINUTES` — intervalo do worker (padrão: 30)
+- `PRICE_RETENTION_DAYS` — retenção do histórico (padrão: 90)
+- `REQUEST_DELAY_SECONDS` — pausa entre coletas (padrão: 1)
 
 ## 3) Serviços
 
@@ -46,9 +39,7 @@ Use o arquivo `deploy-production.env.example` como base.
 - [ ] API responde em `/health`
 - [ ] Dashboard responde em `/dashboard`
 - [ ] Banco PostgreSQL conectado
-- [ ] Redis conectado
 - [ ] Worker processando itens
-- [ ] Webhook HTTPS validado
 - [ ] Logs funcionando
 - [ ] Backup programado
 

@@ -6,16 +6,11 @@
 - [ ] Confirmar que Docker e Docker Compose estão instalados
 - [ ] Confirmar que o diretório do projeto está acessível
 - [ ] Criar o arquivo .env a partir de .env.example
-- [ ] Ajustar valores reais de token e WhatsApp
+- [ ] Ajustar valores reais de banco de dados
 
 ## 2. Configuração de ambiente
 
-- [ ] Definir BOT_TOKEN
-- [ ] Definir WHATSAPP_TOKEN
-- [ ] Definir WHATSAPP_PHONE_NUMBER_ID
-- [ ] Definir WHATSAPP_WEBHOOK_VERIFY_TOKEN
 - [ ] Definir DATABASE_URL para o banco real
-- [ ] Definir REDIS_URL para o Redis real
 - [ ] Ajustar CHECK_INTERVAL_MINUTES
 
 ## 3. Validação local
@@ -35,11 +30,9 @@
 - [ ] Verificar logs do worker
 - [ ] Verificar logs da API
 - [ ] Confirmar conectividade com PostgreSQL
-- [ ] Confirmar conectividade com Redis
 
 ## 5. Operação real
 
-- [ ] Validar webhook do WhatsApp em produção
 - [ ] Validar notificações de alerta
 - [ ] Validar monitoramento periódico do worker
 - [ ] Configurar rotina de backup do banco
@@ -48,7 +41,7 @@
 
 ## 6. Segurança
 
-- [ ] NUNCA deixar TOKEN em repositório público
+- [ ] NUNCA deixar credenciais em repositório público
 - [ ] Usar arquivo .env em servidor real sem versionar
 - [ ] Usar TLS/HTTPS em produção
 - [ ] Restringir portas e acessos
@@ -58,7 +51,6 @@
 - [ ] API respondendo em produção
 - [ ] Worker rodando sem erro
 - [ ] PostgreSQL estável
-- [ ] Redis estável
 - [ ] Dashboard acessível
 - [ ] Alertas funcionando
 - [ ] Backups configurados
