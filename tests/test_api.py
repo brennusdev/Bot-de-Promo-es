@@ -94,3 +94,131 @@ def test_products_endpoint_empty(client):
     resp = client.get("/products")
     assert resp.status_code == 200
     assert resp.json() == []
+
+
+def test_categories_endpoint(client, monkeypatch):
+    """Categorias aparecem com contagem após cadastrar produtos."""
+    from unittest.mock import patch
+
+    fake_data = {
+        "name": "Notebook Dell Inspiron 15 8GB",
+        "price": 2500.0,
+        "url": "https://www.mercadolivre.com.br/notebook-dell",
+        "store": "Mercado Livre",
+        "market": "mercado_livre",
+        "specifications": {},
+        "reference_price": 2500.0,
+        "promotion_score": 0,
+    }
+    with patch("app.main.get_product_data_for_url", return_value=fake_data):
+        client.post("/products", json={"url": "https://www.mercadolivre.com.br/notebook-dell"})
+
+    resp = client.get("/categories")
+    assert resp.status_code == 200
+    cats = resp.json()["categories"]
+    assert cats.get("notebook") == 1
+
+    # Filtro por categoria no /products
+    resp2 = client.get("/products?category=notebook")
+    assert resp2.status_code == 200
+    assert len(resp2.json()) == 1
+    resp3 = client.get("/products?category=monitor")
+    assert resp3.json() == []
+
+
+def test_delete_product(client, monkeypatch):
+    """DELETE remove produto (e 404 em id inexistente)."""
+    from unittest.mock import patch
+
+    fake_data = {
+        "name": "Fone JBL Tune 510BT",
+        "price": 299.0,
+        "url": "https://www.pichau.com.br/fone-jbl",
+        "store": "Pichau",
+        "market": "pichau",
+        "specifications": {},
+        "reference_price": 299.0,
+        "promotion_score": 0,
+    }
+    url = "https://www.pichau.com.br/fone-jbl"
+    with patch("app.main.get_product_data_for_url", return_value=fake_data):
+        created = client.post("/products", json={"url": url}).json()
+
+    product_id = created["product"]["id"]
+
+    resp = client.delete(f"/products/{product_id}")
+    assert resp.status_code == 204
+
+    # Produto sumiu da listagem
+    resp2 = client.get("/products")
+    assert resp2.json() == []
+
+    # Remover de novo dá 404
+    resp3 = client.delete(f"/products/{product_id}")
+    assert resp3.status_code == 404
+
+
+def test_delete_product_cascade(client, monkeypatch):
+    """Remover produto apaga também preços e alertas vinculados."""
+    from unittest.mock import patch
+
+    from app.database.connection import get_connection
+    from app.services.price_service import save_price
+
+    fake_data = {
+        "name": "Monitor AOC 24",
+        "price": 700.0,
+        "url": "https://www.kabum.com.br/monitor-aoc-2",
+        "store": "KaBuM",
+        "market": "kabum",
+        "specifications": {},
+        "reference_price": 700.0,
+        "promotion_score": 0,
+    }
+    with patch("app.main.get_product_data_for_url", return_value=fake_data):
+        created = client.post("/products", json={"url": fake_data["url"]}).json()
+    product_id = created["product"]["id"]
+
+    save_price(product_id, 700.0)
+    user = client.post("/users", json={"name": "Ana", "phone": "11988776655"}).json()
+    client.post(f"/users/{user['id']}/alerts", json={"product_id": product_id, "threshold_percent": 10})
+
+    resp = client.delete(f"/products/{product_id}")
+    assert resp.status_code == 204
+
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute("SELECT COUNT(*) FROM prices WHERE product_id = ?", (product_id,))
+    assert cursor.fetchone()[0] == 0
+    cursor.execute("SELECT COUNT(*) FROM alerts WHERE product_id = ?", (product_id,))
+    assert cursor.fetchone()[0] == 0
+    conn.close()
+
+
+def test_offers_new_endpoint(client, monkeypatch):
+    """Endpoint do popup: detecta produtos novos desde um id."""
+    from unittest.mock import patch
+
+    fake_data = {
+        "name": "Monitor AOC 24 75Hz",
+        "price": 700.0,
+        "url": "https://www.kabum.com.br/monitor-aoc",
+        "store": "KaBuM",
+        "market": "kabum",
+        "specifications": {},
+        "reference_price": 700.0,
+        "promotion_score": 0,
+    }
+    with patch("app.main.get_product_data_for_url", return_value=fake_data):
+        client.post("/products", json={"url": "https://www.kabum.com.br/monitor-aoc"})
+
+    resp = client.get("/offers/new?since_id=0")
+    assert resp.status_code == 200
+    body = resp.json()
+    assert body["has_new"] is True
+    latest = body["latest_id"]
+    assert body["offers"][0]["category"] == "monitor"
+
+    # Sem produtos novos desde o último id visto
+    resp2 = client.get(f"/offers/new?since_id={latest}")
+    assert resp2.json()["has_new"] is False
