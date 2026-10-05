@@ -81,3 +81,78 @@
 2026-10-05 18:53:41,803 | INFO | httpx | HTTP Request: POST http://testserver/products "HTTP/1.1 201 Created"
 2026-10-05 18:53:41,811 | INFO | httpx | HTTP Request: GET http://testserver/offers/new?since_id=0 "HTTP/1.1 200 OK"
 2026-10-05 18:53:41,820 | INFO | httpx | HTTP Request: GET http://testserver/offers/new?since_id=1 "HTTP/1.1 200 OK"
+2026-10-05 19:14:16,264 | INFO | httpx | HTTP Request: GET http://testserver/ "HTTP/1.1 200 OK"
+2026-10-05 19:14:16,336 | INFO | httpx | HTTP Request: GET http://testserver/health "HTTP/1.1 200 OK"
+2026-10-05 19:14:16,390 | INFO | httpx | HTTP Request: GET http://testserver/ready "HTTP/1.1 200 OK"
+2026-10-05 19:14:16,451 | INFO | httpx | HTTP Request: POST http://testserver/users "HTTP/1.1 201 Created"
+2026-10-05 19:14:16,456 | INFO | httpx | HTTP Request: POST http://testserver/users "HTTP/1.1 201 Created"
+2026-10-05 19:14:16,461 | INFO | httpx | HTTP Request: GET http://testserver/users "HTTP/1.1 200 OK"
+2026-10-05 19:14:16,513 | INFO | httpx | HTTP Request: POST http://testserver/users "HTTP/1.1 422 Unprocessable Entity"
+2026-10-05 19:14:16,576 | INFO | httpx | HTTP Request: POST http://testserver/users "HTTP/1.1 201 Created"
+2026-10-05 19:14:16,588 | INFO | httpx | HTTP Request: POST http://testserver/users/1/alerts "HTTP/1.1 201 Created"
+2026-10-05 19:14:16,595 | INFO | httpx | HTTP Request: GET http://testserver/users/1/alerts "HTTP/1.1 200 OK"
+2026-10-05 19:14:16,652 | INFO | httpx | HTTP Request: GET http://testserver/products "HTTP/1.1 200 OK"
+2026-10-05 19:14:16,700 | INFO | httpx | HTTP Request: POST http://testserver/products "HTTP/1.1 401 Unauthorized"
+2026-10-05 19:14:16,704 | INFO | httpx | HTTP Request: POST http://testserver/admin/login "HTTP/1.1 200 OK"
+2026-10-05 19:14:16,707 | INFO | httpx | HTTP Request: POST http://testserver/admin/login "HTTP/1.1 401 Unauthorized"
+2026-10-05 19:14:16,731 | INFO | httpx | HTTP Request: POST http://testserver/products "HTTP/1.1 201 Created"
+2026-10-05 19:14:16,784 | INFO | httpx | HTTP Request: POST http://testserver/admin/login "HTTP/1.1 200 OK"
+2026-10-05 19:14:17,944 | INFO | httpx | HTTP Request: POST http://testserver/products "HTTP/1.1 201 Created"
+2026-10-05 19:14:18,109 | INFO | httpx | HTTP Request: POST http://testserver/products "HTTP/1.1 201 Created"
+2026-10-05 19:14:18,112 | INFO | httpx | HTTP Request: POST http://testserver/products "HTTP/1.1 429 Too Many Requests"
+2026-10-05 19:14:18,182 | INFO | httpx | HTTP Request: POST http://testserver/products "HTTP/1.1 201 Created"
+2026-10-05 19:14:18,256 | INFO | httpx | HTTP Request: POST http://testserver/products "HTTP/1.1 201 Created"
+2026-10-05 19:14:18,261 | INFO | httpx | HTTP Request: GET http://testserver/categories "HTTP/1.1 200 OK"
+2026-10-05 19:14:18,266 | INFO | httpx | HTTP Request: GET http://testserver/products?category=notebook "HTTP/1.1 200 OK"
+2026-10-05 19:14:18,270 | INFO | httpx | HTTP Request: GET http://testserver/products?category=monitor "HTTP/1.1 200 OK"
+2026-10-05 19:14:18,335 | INFO | httpx | HTTP Request: POST http://testserver/products "HTTP/1.1 201 Created"
+2026-10-05 19:14:18,356 | INFO | httpx | HTTP Request: DELETE http://testserver/products/1 "HTTP/1.1 204 No Content"
+2026-10-05 19:14:18,367 | INFO | httpx | HTTP Request: GET http://testserver/products "HTTP/1.1 200 OK"
+2026-10-05 19:14:18,372 | INFO | httpx | HTTP Request: DELETE http://testserver/products/1 "HTTP/1.1 404 Not Found"
+2026-10-05 19:14:18,453 | INFO | httpx | HTTP Request: POST http://testserver/products "HTTP/1.1 201 Created"
+2026-10-05 19:14:18,475 | INFO | httpx | HTTP Request: POST http://testserver/users "HTTP/1.1 201 Created"
+2026-10-05 19:14:18,488 | INFO | httpx | HTTP Request: POST http://testserver/users/1/alerts "HTTP/1.1 201 Created"
+2026-10-05 19:14:18,501 | INFO | httpx | HTTP Request: DELETE http://testserver/products/1 "HTTP/1.1 204 No Content"
+2026-10-05 19:14:18,598 | INFO | httpx | HTTP Request: POST http://testserver/products "HTTP/1.1 201 Created"
+2026-10-05 19:14:18,608 | INFO | httpx | HTTP Request: GET http://testserver/offers/new?since_id=0 "HTTP/1.1 200 OK"
+2026-10-05 19:14:18,614 | INFO | httpx | HTTP Request: GET http://testserver/offers/new?since_id=1 "HTTP/1.1 200 OK"
+2026-10-05 19:14:18,651 | INFO | pricebot.email | E-mail de alerta enviado para ['user@test.com']
+2026-10-05 19:14:18,655 | ERROR | pricebot.email | Falha ao enviar e-mail de alerta
+Traceback (most recent call last):
+  File "C:\Users\Win10\OneDrive\Documentos\Estudos e Projetos Ideias\Bot\Bot de Promoções\app\services\email_service.py", line 50, in send_email
+    with smtplib.SMTP(SMTP_HOST, SMTP_PORT, timeout=20) as server:
+         ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Python314\Lib\unittest\mock.py", line 1176, in __call__
+    return self._mock_call(*args, **kwargs)
+           ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "C:\Python314\Lib\unittest\mock.py", line 1180, in _mock_call
+    return self._execute_mock_call(*args, **kwargs)
+           ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "C:\Python314\Lib\unittest\mock.py", line 1241, in _execute_mock_call
+    raise effect
+ConnectionError: erro
+2026-10-05 19:14:18,666 | INFO | pricebot.notification | Notificação para 1: msg
+2026-10-05 19:14:18,668 | INFO | pricebot.notification | Notificação para 1: msg
+2026-10-05 19:14:18,979 | ERROR | pricebot.email | Falha ao enviar e-mail de alerta
+Traceback (most recent call last):
+  File "C:\Users\Win10\OneDrive\Documentos\Estudos e Projetos Ideias\Bot\Bot de Promoções\app\services\email_service.py", line 50, in send_email
+    with smtplib.SMTP(SMTP_HOST, SMTP_PORT, timeout=20) as server:
+         ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Python314\Lib\smtplib.py", line 261, in __init__
+    (code, msg) = self.connect(host, port)
+                  ~~~~~~~~~~~~^^^^^^^^^^^^
+  File "C:\Python314\Lib\smtplib.py", line 348, in connect
+    self.sock = self._get_socket(host, port, self.timeout)
+                ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Python314\Lib\smtplib.py", line 318, in _get_socket
+    return socket.create_connection((host, port), timeout,
+           ~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^
+                                    self.source_address)
+                                    ^^^^^^^^^^^^^^^^^^^^
+  File "C:\Python314\Lib\socket.py", line 850, in create_connection
+    for res in getaddrinfo(host, port, 0, SOCK_STREAM):
+               ~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Python314\Lib\socket.py", line 989, in getaddrinfo
+    for res in _socket.getaddrinfo(host, port, family, type, proto, flags):
+               ~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+socket.gaierror: [Errno 11001] getaddrinfo failed

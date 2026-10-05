@@ -179,6 +179,9 @@ def test_promotion_score_atualizado_no_ciclo(client, monkeypatch):
 
     product = get_product_by_id(product_id)
     assert product["promotion_score"] == 3
+
+
+def test_categories_endpoint(client, monkeypatch):
     """Categorias aparecem com contagem após cadastrar produtos."""
     from unittest.mock import patch
 

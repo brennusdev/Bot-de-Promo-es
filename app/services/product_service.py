@@ -73,6 +73,19 @@ def save_product(name, url, store, market="mercado", category=None, specificatio
     return product
 
 
+def get_product_by_id(product_id):
+    """Busca um produto pelo id."""
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute(
+        f"SELECT * FROM products WHERE id = {get_placeholder()}",
+        (product_id,),
+    )
+    product = cursor.fetchone()
+    conn.close()
+    return dict(product) if product else None
+
+
 def get_product_by_url(url):
     """Busca um produto pelo link da página."""
     conn = get_connection()
