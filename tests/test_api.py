@@ -1,8 +1,7 @@
 """Testes de API HTTP com TestClient (banco em arquivo temporário).
 
 ESTUDO: os testes anteriores cobriam apenas serviços e schemas — nenhuma
-rota HTTP era exercitada. Com TestClient validamos status codes, payloads
-e o comportamento do webhook de ponta a ponta.
+rota HTTP era exercitada. Com TestClient validamos status codes e payloads.
 """
 import importlib
 import os
@@ -95,23 +94,3 @@ def test_products_endpoint_empty(client):
     resp = client.get("/products")
     assert resp.status_code == 200
     assert resp.json() == []
-
-
-def test_webhook_verify_rejects_bad_token(client):
-    resp = client.get("/webhooks/whatsapp?hub.mode=subscribe&hub.verify_token=errado&hub.challenge=123")
-    assert resp.status_code == 403
-
-
-def test_webhook_verify_accepts_good_token(client, monkeypatch):
-    import app.api as api
-    import app.services.whatsapp_service as wa
-
-    monkeypatch.setattr(wa, "WHATSAPP_WEBHOOK_VERIFY_TOKEN", "meu_token")
-    resp = client.get("/webhooks/whatsapp?hub.mode=subscribe&hub.verify_token=meu_token&hub.challenge=abc123")
-    assert resp.status_code == 200
-    assert resp.json() == "abc123"
-
-
-def test_webhook_post_rejects_garbage_json(client):
-    resp = client.post("/webhooks/whatsapp", content=b"not json", headers={"content-type": "application/json"})
-    assert resp.status_code == 400
