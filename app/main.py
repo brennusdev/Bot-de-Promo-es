@@ -1,5 +1,6 @@
 from app.collectors.router import get_product_data_for_url
 from app.database.connection import init_db
+from app.services.category_service import detect_category
 from app.services.price_service import save_price  # usado em save_collected_price
 from app.services.product_service import save_product
 
@@ -10,11 +11,16 @@ def process_product(url, store_name=None, market=None):
 
     data = get_product_data_for_url(url)
 
+    # ESTUDO (categorização): a categoria é derivada do nome do produto,
+    # já que os coletores não expõem a categoria oficial da loja.
+    category = data.get("category") or detect_category(data["name"])
+
     product = save_product(
         name=data["name"],
         url=data["url"],
         store=data.get("store", store_name or "Loja desconhecida"),
         market=data.get("market", market or "desconhecida"),
+        category=category,
         specifications=data.get("specifications", {}),
         reference_price=data.get("reference_price", 0),
         promotion_score=data.get("promotion_score", 0),
