@@ -41,8 +41,16 @@ def save_product(name, url, store, market="mercado", specifications=None, refere
         }
     else:
         product = dict(product)
-        if product.get("specifications"):
-            product["specifications"] = json.loads(product["specifications"])
+        specs = product.get("specifications")
+        if specs:
+            # ESTUDO (banco): no PostgreSQL (JSONB) o driver já devolve dict;
+            # no SQLite (TEXT) devolve string JSON. Suportamos os dois formatos.
+            if isinstance(specs, str):
+                try:
+                    specs = json.loads(specs)
+                except (TypeError, ValueError):
+                    specs = {}
+            product["specifications"] = specs or {}
 
     conn.close()
     return product
