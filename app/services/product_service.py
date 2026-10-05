@@ -1,15 +1,18 @@
 import json
 
 from app.database.connection import get_connection, get_placeholder, supports_returning, fetch_new_id
+from app.services.category_service import detect_category
 
 
-def save_product(name, url, store, market="mercado", specifications=None, reference_price=0, promotion_score=0):
+def save_product(name, url, store, market="mercado", category=None, specifications=None, reference_price=0, promotion_score=0):
     """Salva o produto no banco. Se já existir, retorna o existente."""
     conn = get_connection()
     cursor = conn.cursor()
     ph = get_placeholder()
 
     specs = json.dumps(specifications or {}, ensure_ascii=False)
+    # Fallback: sem categoria explícita, classifica pelo nome do produto.
+    category = category or detect_category(name)
 
     cursor.execute(
         f"SELECT * FROM products WHERE url = {ph}",
@@ -19,13 +22,13 @@ def save_product(name, url, store, market="mercado", specifications=None, refere
 
     if product is None:
         insert_sql = f"""
-            INSERT INTO products (name, url, store, market, specifications, reference_price, promotion_score)
-            VALUES ({ph}, {ph}, {ph}, {ph}, {ph}, {ph}, {ph})
+            INSERT INTO products (name, url, store, market, category, specifications, reference_price, promotion_score)
+            VALUES ({ph}, {ph}, {ph}, {ph}, {ph}, {ph}, {ph}, {ph})
             """
         if supports_returning():
             insert_sql += " RETURNING id"
         cursor.execute(insert_sql,
-            (name, url, store, market, specs, float(reference_price), int(promotion_score)),
+            (name, url, store, market, category, specs, float(reference_price), int(promotion_score)),
         )
         conn.commit()
         product_id = fetch_new_id(cursor)
@@ -35,6 +38,7 @@ def save_product(name, url, store, market="mercado", specifications=None, refere
             "url": url,
             "store": store,
             "market": market,
+            "category": category,
             "specifications": specifications or {},
             "reference_price": float(reference_price),
             "promotion_score": int(promotion_score),
@@ -51,6 +55,19 @@ def save_product(name, url, store, market="mercado", specifications=None, refere
                 except (TypeError, ValueError):
                     specs = {}
             product["specifications"] = specs or {}
+
+        # ESTUDO (migração): produtos antigos ficaram sem categoria (NULL ou
+        # 'outros' default). Backfill on-the-fly classifica pelo nome —
+        # depois de algumas execuções, toda a base fica categorizada.
+        if not product.get("category") or product.get("category") == "outros":
+            detected = detect_category(product.get("name") or "")
+            if detected != "outros":
+                cursor.execute(
+                    f"UPDATE products SET category = {ph} WHERE id = {ph}",
+                    (detected, product["id"]),
+                )
+                conn.commit()
+                product["category"] = detected
 
     conn.close()
     return product
@@ -71,19 +88,45 @@ def get_product_by_url(url):
     return dict(product) if product else None
 
 
-def list_products(limit=None, offset=0):
-    """Lista produtos cadastrados com paginação opcional.
+def delete_product(product_id):
+    """Remove um produto e seus registros dependentes (preços e alertas).
+
+    ESTUDO (SQL): o SQLite pode não ter PRAGMA foreign_keys=ON por conexão,
+    então fazemos o cascade manualmente — mesma semântica do
+    ON DELETE CASCADE do esquema PostgreSQL.
+    """
+    conn = get_connection()
+    cursor = conn.cursor()
+    ph = get_placeholder()
+
+    cursor.execute(f"DELETE FROM prices WHERE product_id = {ph}", (product_id,))
+    cursor.execute(f"DELETE FROM alerts WHERE product_id = {ph}", (product_id,))
+    cursor.execute(f"DELETE FROM products WHERE id = {ph}", (product_id,))
+    deleted = cursor.rowcount
+    conn.commit()
+    conn.close()
+
+    return deleted > 0
+
+
+def list_products(limit=None, offset=0, category=None):
+    """Lista produtos cadastrados com paginação e filtro opcional por categoria.
 
     ESTUDO (API): sem paginação, a lista cresce indefinidamente e o
     endpoint fica lento. limit/offset permitem o dashboard carregar aos
     poucos (ex.: ?limit=20&offset=40). limit=None mantém compatibilidade.
+    category filtra por categoria detectada (ex.: ?category=notebook).
     """
     conn = get_connection()
     cursor = conn.cursor()
 
     ph = get_placeholder()
-    sql = "SELECT * FROM products ORDER BY id DESC"
+    sql = "SELECT * FROM products"
     params = []
+    if category:
+        sql += f" WHERE category = {ph}"
+        params.append(category)
+    sql += " ORDER BY id DESC"
     if limit is not None:
         sql += f" LIMIT {int(limit)} OFFSET {int(offset)}"
     cursor.execute(sql, tuple(params))
