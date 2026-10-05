@@ -1,6 +1,8 @@
 $ErrorActionPreference = 'Stop'
 
-$projectRoot = 'C:\Users\Win10\OneDrive\Documentos\Estudos e Projetos Ideias\Bot\Bot de Promoções'
+# ESTUDO (portabilidade): resolve a raiz pela localização do script —
+# funciona em qualquer máquina, sem caminho absoluto fixo.
+$projectRoot = Split-Path -Parent $PSScriptRoot
 Set-Location $projectRoot
 
 if (-not (Test-Path '.env')) {
