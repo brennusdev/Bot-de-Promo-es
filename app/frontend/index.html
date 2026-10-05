@@ -181,9 +181,134 @@
       .trend-more-barato { color: var(--accent); }
       .trend-mais-caro { color: var(--danger); }
       .trend-igual { color: var(--muted); }
+      .category-chip {
+        display: inline-block;
+        padding: 5px 10px;
+        border-radius: 999px;
+        font-size: 0.7rem;
+        font-weight: bold;
+        background: rgba(59,130,246,0.14);
+        color: #93c5fd;
+        border: 1px solid rgba(96,165,250,0.35);
+      }
+      .popup-overlay {
+        position: fixed;
+        inset: 0;
+        background: rgba(2,6,23,0.7);
+        display: none;
+        align-items: center;
+        justify-content: center;
+        z-index: 1000;
+      }
+      .popup-overlay.visible { display: flex; }
+      .popup {
+        background: var(--card);
+        border: 1px solid rgba(34,197,94,0.45);
+        border-radius: 16px;
+        padding: 24px;
+        max-width: 480px;
+        width: 92%;
+        box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+        animation: pop-in 0.25s ease;
+      }
+      @keyframes pop-in {
+        from { transform: scale(0.92); opacity: 0; }
+        to { transform: scale(1); opacity: 1; }
+      }
+      .popup h2 {
+        margin: 0 0 8px;
+        font-size: 1.3rem;
+        color: var(--accent);
+      }
+      .popup p.sub { margin: 0 0 16px; color: var(--muted); font-size: 0.85rem; }
+      .popup-offers { max-height: 280px; overflow-y: auto; margin-bottom: 16px; }
+      .popup-offer {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 10px;
+        padding: 10px 12px;
+        border-radius: 10px;
+        background: rgba(255,255,255,0.04);
+        margin-bottom: 8px;
+      }
+      .popup-offer a {
+        color: #e2e8f0;
+        text-decoration: none;
+        font-weight: 600;
+        font-size: 0.85rem;
+        flex: 1;
+      }
+      .popup-offer a:hover { color: #7dd3fc; }
+      .popup-actions { display: flex; gap: 10px; justify-content: flex-end; }
+      .popup-actions button {
+        border: none;
+        border-radius: 999px;
+        padding: 10px 16px;
+        font-weight: bold;
+        font-size: 0.8rem;
+        cursor: pointer;
+      }
+      .btn-primary { background: var(--accent); color: #052e16; }
+      .btn-secondary { background: rgba(148,163,184,0.15); color: var(--text); }
+      .add-form {
+        display: flex;
+        gap: 10px;
+        margin-bottom: 18px;
+      }
+      .add-form input {
+        flex: 1;
+        background: rgba(15,23,42,0.7);
+        border: 1px solid rgba(148,163,184,0.35);
+        border-radius: 999px;
+        padding: 10px 16px;
+        color: var(--text);
+        font-size: 0.9rem;
+        outline: none;
+      }
+      .add-form input:focus { border-color: rgba(34,197,94,0.5); }
+      .add-form button {
+        border: none;
+        border-radius: 999px;
+        padding: 10px 20px;
+        font-weight: bold;
+        font-size: 0.85rem;
+        cursor: pointer;
+        background: var(--accent);
+        color: #052e16;
+        white-space: nowrap;
+      }
+      .add-form button:disabled { opacity: 0.5; cursor: wait; }
+      .add-msg { font-size: 0.8rem; margin: -10px 0 14px 8px; min-height: 1em; }
+      .add-msg.ok { color: var(--accent); }
+      .add-msg.err { color: var(--danger); }
+      .remove-btn {
+        border: none;
+        background: rgba(239,68,68,0.12);
+        color: var(--danger);
+        border: 1px solid rgba(239,68,68,0.35);
+        border-radius: 999px;
+        padding: 6px 12px;
+        font-size: 0.75rem;
+        font-weight: bold;
+        cursor: pointer;
+      }
+      .remove-btn:hover { background: rgba(239,68,68,0.25); }
     </style>
   </head>
   <body>
+    <div class="popup-overlay" id="offersPopup">
+      <div class="popup">
+        <h2>🔔 Você tem novas ofertas!</h2>
+        <p class="sub" id="popupSubtitle">Confira os produtos recém-cadastrados:</p>
+        <div class="popup-offers" id="popupOffers"></div>
+        <div class="popup-actions">
+          <button class="btn-secondary" id="popupDismiss">Fechar</button>
+          <button class="btn-primary" id="popupView">Ver ofertas</button>
+        </div>
+      </div>
+    </div>
+
     <div class="container">
       <div class="header">
         <h1>Bot de Promoções</h1>
@@ -205,6 +330,23 @@
         </div>
       </div>
 
+      <div class="add-form">
+        <input
+          type="url"
+          id="productUrl"
+          placeholder="Cole aqui a URL do produto (ex.: https://www.kabum.com.br/...)"
+          autocomplete="off"
+        />
+        <button id="addProductBtn">+ Cadastrar produto</button>
+      </div>
+      <div class="add-msg" id="addMsg"></div>
+
+      <div class="toolbar">
+        <div class="filter-group" id="categoryFilters">
+          <button class="filter-btn active" data-filter="all">Todas categorias</button>
+        </div>
+      </div>
+
       <div class="toolbar">
         <div class="filter-group">
           <button class="filter-btn active" data-filter="all">1. Todos</button>
@@ -220,35 +362,90 @@
             <tr>
               <th>Produto</th>
               <th>Loja</th>
+              <th>Categoria</th>
               <th>Preço Atual</th>
               <th>Variação</th>
               <th>Status</th>
+              <th></th>
             </tr>
           </thead>
           <tbody id="productRows"></tbody>
         </table>
       </div>
+      <div id="loadMoreWrap" style="text-align:center; padding:16px; display:none">
+        <button id="loadMoreBtn" style="background:rgba(148,163,184,0.15); color:var(--text); border:1px solid rgba(148,163,184,0.35); border-radius:999px; padding:10px 20px; cursor:pointer; font-weight:bold">Carregar mais produtos ↓</button>
+      </div>
     </div>
 
     <script>
       let currentFilter = 'all';
+      let currentCategory = 'all';
       let allProducts = [];
+      // ESTUDO (paginação): carrega em páginas de 25; "Carregar mais" busca a
+      // próxima. Com milhares de produtos, a tabela não trava.
+      const PAGE_SIZE = 25;
+      let loadedCount = PAGE_SIZE;
+      let totalKnown = null;
+
+      function adminHeaders() {
+        const token = sessionStorage.getItem('adminToken') || '';
+        return token ? { 'X-Admin-Token': token } : {};
+      }
+
+      const CATEGORY_LABELS = {
+        notebook: 'Notebook',
+        tablet: 'Tablet',
+        monitor: 'Monitor',
+        fone: 'Fone',
+        mouse: 'Mouse',
+        teclado: 'Teclado',
+        outros: 'Outros',
+      };
+
+      function categoryLabel(category) {
+        return CATEGORY_LABELS[category] || 'Outros';
+      }
 
       function applyFilter() {
         const rows = document.querySelectorAll('#productRows tr');
         rows.forEach(row => {
-          const show =
+          const showType =
             currentFilter === 'all' ||
             (currentFilter === 'promo' && row.dataset.status === 'promo') ||
             (currentFilter === 'cheaper' && row.dataset.priceTrend === 'mais_barato') ||
             (currentFilter === 'expensive' && row.dataset.priceTrend === 'mais_caro');
-
-          row.style.display = show ? '' : 'none';
+          const showCategory =
+            currentCategory === 'all' || row.dataset.category === currentCategory;
+          row.style.display = (showType && showCategory) ? '' : 'none';
         });
       }
 
+      async function loadCategoryFilters() {
+        // ESTUDO: busca contagem por categoria e monta os botões dinamicamente —
+        // só aparecem categorias que realmente têm produtos.
+        const data = await fetch('/categories').then(r => r.json());
+        const container = document.getElementById('categoryFilters');
+        container.innerHTML = '';
+
+        const allBtn = document.createElement('button');
+        allBtn.className = 'filter-btn active';
+        allBtn.dataset.category = 'all';
+        allBtn.textContent = 'Todas categorias';
+        container.appendChild(allBtn);
+
+        Object.entries(data.categories)
+          .sort((a, b) => b[1] - a[1])
+          .forEach(([category, count]) => {
+            const btn = document.createElement('button');
+            btn.className = 'filter-btn';
+            btn.dataset.category = category;
+            btn.textContent = `${categoryLabel(category)} (${count})`;
+            container.appendChild(btn);
+          });
+      }
+
       async function loadDashboard() {
-        const products = await fetch('/products').then(r => r.json());
+        const products = await fetch(`/products?limit=${loadedCount}`).then(r => r.json());
         allProducts = products;
         const rows = document.getElementById('productRows');
         rows.innerHTML = '';
@@ -276,15 +473,14 @@
 
           tr.dataset.status = isPromo ? 'promo' : 'normal';
           tr.dataset.priceTrend = variation.trend || 'igual';
+          tr.dataset.category = product.category || 'outros';
           tr.innerHTML = `
             <td>
               <div class="product-cell">
                 <a
                   class="product-link"
-                  href="${productUrl}"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  title="Abrir site do produto"
+                  href="/products/view?id=${product.id}"
+                  title="Ver histórico de preços"
                 >
                   ${productName}
                 </a>
@@ -300,30 +496,215 @@
               </div>
             </td>
             <td>${product.store || 'Loja'}</td>
+            <td><span class="category-chip">${categoryLabel(product.category)}</span></td>
             <td>R$ ${currentPrice.toFixed(2)}</td>
             <td class="trend-cell ${trendClass}">${trendText}</td>
             <td><span class="pill ${pillClass}">${status}</span></td>
+            <td><button class="remove-btn" data-remove-id="${product.id}" title="Remover produto e seu histórico">✕</button></td>
           `;
           rows.appendChild(tr);
         });
 
         applyFilter();
 
+        // Botão "carregar mais" (só aparece se a página veio cheia)
+        const pager = document.getElementById('loadMoreWrap');
+        if (products.length >= loadedCount) {
+          pager.style.display = '';
+        } else {
+          pager.style.display = 'none';
+        }
+
         const avg = products.length ? (promoTotal / products.length) * 20 : 0;
         document.getElementById('promoRate').textContent = `${avg.toFixed(0)}%`;
       }
 
-      document.querySelectorAll('.filter-btn').forEach(button => {
+      document.querySelectorAll('[data-filter]').forEach(button => {
         button.addEventListener('click', () => {
-          document.querySelectorAll('.filter-btn').forEach(btn => btn.classList.remove('active'));
+          document.querySelectorAll('[data-filter]').forEach(btn => btn.classList.remove('active'));
           button.classList.add('active');
           currentFilter = button.dataset.filter;
           applyFilter();
         });
       });
 
+      // Filtro por categoria (delegação, pois os botões são recriados)
+      document.getElementById('categoryFilters').addEventListener('click', event => {
+        const button = event.target.closest('button');
+        if (!button || !button.dataset.category) return;
+        document.querySelectorAll('#categoryFilters .filter-btn').forEach(btn => btn.classList.remove('active'));
+        button.classList.add('active');
+        currentCategory = button.dataset.category;
+        applyFilter();
+      });
+
+      // ===== Popup de novas ofertas =====
+      // Guarda o maior id de produto já visto; ao carregar, pergunta à API
+      // se há produtos com id maior — se sim, mostra o popup.
+      function getLastSeenId() {
+        return Number(localStorage.getItem('lastSeenProductId') || 0);
+      }
+
+      function markSeen(id) {
+        localStorage.setItem('lastSeenProductId', String(id));
+      }
+
+      async function checkNewOffers() {
+        try {
+          const lastSeen = getLastSeenId();
+          const data = await fetch(`/offers/new?since_id=${lastSeen}`).then(r => r.json());
+
+          // Primeira visita: apenas marca o id atual, sem popup (evita
+          // popup com "todas" as ofertas na primeira carga da página).
+          if (!lastSeen) {
+            markSeen(data.latest_id || 0);
+            return;
+          }
+
+          if (data.has_new) {
+            const listEl = document.getElementById('popupOffers');
+            listEl.innerHTML = '';
+            data.offers.slice(0, 10).forEach(product => {
+              const item = document.createElement('div');
+              item.className = 'popup-offer';
+              item.innerHTML = `
+                <a href="${product.url || '#'}" target="_blank" rel="noopener noreferrer">
+                  ${(product.name || 'Produto').slice(0, 70)}
+                </a>
+                <span class="category-chip">${categoryLabel(product.category)}</span>
+              `;
+              listEl.appendChild(item);
+            });
+            document.getElementById('popupSubtitle').textContent =
+              `${data.count} ${data.count === 1 ? 'novo produto monitorado' : 'novos produtos monitorados'} desde sua última visita:`;
+            document.getElementById('offersPopup').classList.add('visible');
+          }
+          markSeen(data.latest_id || lastSeen);
+        } catch (error) {
+          // Falha silenciosa: popup é apenas melhoria, nunca deve quebrar a página.
+        }
+      }
+
+      document.getElementById('popupDismiss').addEventListener('click', () => {
+        document.getElementById('offersPopup').classList.remove('visible');
+      });
+
+      document.getElementById('popupView').addEventListener('click', () => {
+        document.getElementById('offersPopup').classList.remove('visible');
+        currentFilter = 'all';
+        currentCategory = 'all';
+        applyFilter();
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      });
+
+      // ===== Cadastro de produto por URL =====
+      const addBtn = document.getElementById('addProductBtn');
+      const urlInput = document.getElementById('productUrl');
+      const addMsg = document.getElementById('addMsg');
+
+      function showAddMsg(text, ok) {
+        addMsg.textContent = text;
+        addMsg.className = `add-msg ${ok ? 'ok' : 'err'}`;
+      }
+
+      addBtn.addEventListener('click', async () => {
+        const url = urlInput.value.trim();
+        if (!url) { showAddMsg('Cole a URL do produto primeiro.', false); return; }
+        addBtn.disabled = true;
+        showAddMsg('Coletando dados do produto...', true);
+        try {
+          const resp = await fetch('/products', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', ...adminHeaders() },
+            body: JSON.stringify({ url }),
+          });
+          if (resp.status === 401) {
+            const pass = prompt('Ação administrativa: digite a senha:');
+            if (pass !== null) {
+              const login = await fetch('/admin/login', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ password: pass }),
+              });
+              if (login.ok) {
+                sessionStorage.setItem('adminToken', pass);
+                addBtn.disabled = false;
+                addBtn.click();
+                return;
+              }
+              showAddMsg('Senha incorreta.', false);
+              addBtn.disabled = false;
+              return;
+            }
+          }
+          if (resp.status === 429) {
+            showAddMsg('Muitos cadastros seguidos. Aguarde um minuto.', false);
+            addBtn.disabled = false;
+            return;
+          }
+          const body = await resp.json().catch(() => ({}));
+          if (resp.ok) {
+            showAddMsg(`✔ "${body.product?.name || 'Produto'}" cadastrado!`, true);
+            urlInput.value = '';
+            await loadDashboard();
+            await loadCategoryFilters();
+          } else {
+            showAddMsg(body.detail || 'Falha ao cadastrar o produto.', false);
+          }
+        } catch (error) {
+          showAddMsg('Erro de rede ao cadastrar.', false);
+        } finally {
+          addBtn.disabled = false;
+        }
+      });
+      urlInput.addEventListener('keydown', e => { if (e.key === 'Enter') addBtn.click(); });
+
+      // Paginação: carrega a próxima página de produtos
+      document.getElementById('loadMoreBtn').addEventListener('click', () => {
+        loadedCount += PAGE_SIZE;
+        loadDashboard();
+      });
+
+      // ===== Remover produto (delegação na tabela) =====
+      document.getElementById('productRows').addEventListener('click', async event => {
+        const btn = event.target.closest('.remove-btn');
+        if (!btn) return;
+        const id = btn.dataset.removeId;
+        if (!confirm('Remover este produto e todo o histórico de preços dele?')) return;
+        const resp = await fetch(`/products/${id}`, { method: 'DELETE', headers: adminHeaders() });
+        if (resp.status === 401) {
+          const pass = prompt('Ação administrativa: digite a senha:');
+          if (pass !== null) {
+            const login = await fetch('/admin/login', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ password: pass }),
+            });
+            if (login.ok) {
+              sessionStorage.setItem('adminToken', pass);
+              await fetch(`/products/${id}`, { method: 'DELETE', headers: adminHeaders() });
+              await loadDashboard();
+              await loadCategoryFilters();
+              return;
+            }
+            alert('Senha incorreta.');
+          }
+          return;
+        }
+        if (resp.status === 204) {
+          await loadDashboard();
+          await loadCategoryFilters();
+        } else {
+          alert('Não foi possível remover o produto.');
+        }
+      });
+
       loadDashboard();
+      loadCategoryFilters();
+      checkNewOffers();
       setInterval(loadDashboard, 20000);
+      // Reavalia novas ofertas a cada ciclo de atualização da tabela.
+      setInterval(checkNewOffers, 60000);
     </script>
   </body>
 </html>
