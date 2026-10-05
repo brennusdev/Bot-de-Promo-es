@@ -3,8 +3,8 @@
 
 from pathlib import Path
 
-from fastapi import FastAPI, HTTPException, Request
-from fastapi.responses import FileResponse, JSONResponse
+from fastapi import FastAPI, HTTPException
+from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.concurrency import run_in_threadpool
 
@@ -12,14 +12,9 @@ from app.health import register_health_checks
 from app.logging_config import configure_logging
 from app.schemas import AlertCreate, ProductCreate, UserCreate
 from app.services.alert_service import calculate_price_change
-from app.services.price_service import get_latest_price, get_price_history, get_recent_prices
+from app.services.price_service import get_price_history, get_recent_prices
 from app.services.product_service import list_products
 from app.services.user_service import create_user, list_users, save_alert, list_alerts
-from app.services.whatsapp_service import (
-    verify_webhook_signature,
-    verify_whatsapp_webhook,
-    process_whatsapp_webhook,
-)
 
 configure_logging()
 
@@ -81,9 +76,8 @@ async def create_product(payload: ProductCreate):
     """Registra um produto a partir da URL (o coletor busca nome/preço).
 
     ESTUDO (performance): o scraping é síncrono (requests), então o handler
-    é async e o trabalho pesado vai para o threadpool — mesmo padrão do
-    webhook do WhatsApp. Sem isso, vários cadastros simultâneos travariam
-    o event loop da API.
+    é async e o trabalho pesado vai para o threadpool. Sem isso, vários
+    cadastros simultâneos travariam o event loop da API.
     """
     from app.main import process_product  # import local evita ciclo de imports
     try:
@@ -123,43 +117,3 @@ def add_alert(user_id: int, payload: AlertCreate):
 def user_alerts(user_id: int):
     """Lista alertas de um usuário."""
     return list_alerts(user_id)
-
-
-@app.get("/webhooks/whatsapp")
-def whatsapp_webhook_verify(request: Request):
-    """Valida o webhook do WhatsApp."""
-    params = request.query_params
-    mode = params.get("hub.mode")
-    token = params.get("hub.verify_token")
-    challenge = params.get("hub.challenge")
-    if verify_whatsapp_webhook(mode, token):
-        return challenge
-    raise HTTPException(status_code=403, detail="Token inválido")
-
-
-@app.post("/webhooks/whatsapp")
-async def whatsapp_webhook_post(request: Request):
-    """Recebe eventos do WhatsApp e processa mensagens.
-
-    ESTUDO (segurança + performance):
-    1. Assinatura: a Meta envia X-Hub-Signature-256 = HMAC-SHA256 do corpo.
-       Verificamos sobre os bytes BRUTOS (request.body()), não sobre JSON
-       re-serializado — qualquer re-serialização alteraria o hash.
-    2. run_in_threadpool: process_whatsapp_webhook faz scraping HTTP
-       síncrono (requests). Se rodasse direto no handler async, travaria o
-       event loop com várias mensagens simultâneas. O threadpool libera o
-       loop para atender outros requests enquanto o scraping roda.
-    """
-    raw_body = await request.body()
-    signature = request.headers.get("X-Hub-Signature-256", "")
-
-    if not verify_webhook_signature(raw_body, signature):
-        raise HTTPException(status_code=403, detail="Assinatura do webhook inválida")
-
-    try:
-        payload = await request.json()
-    except Exception as exc:
-        raise HTTPException(status_code=400, detail="JSON inválido") from exc
-
-    # Scraping síncrono -> threadpool para não bloquear o event loop.
-    return await run_in_threadpool(process_whatsapp_webhook, payload)
