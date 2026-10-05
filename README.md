@@ -9,8 +9,7 @@ Sistema de monitoramento de preços e alertas de promoção para produtos de mar
 - cálculo de promoção e score
 - alertas por queda percentual
 - API FastAPI para integração
-- dashboard simples para visualização
-- webhook do WhatsApp para interação
+- dashboard web para visualização e cadastro pelo cliente
 
 ## Requisitos
 
@@ -66,7 +65,6 @@ Sistema de monitoramento de preços e alertas de promoção para produtos de mar
 - http://localhost:8000/dashboard
 - http://localhost:8000/products
 - http://localhost:8000/users
-- http://localhost:8000/webhooks/whatsapp
 
 ## Arquitetura de produção
 
@@ -84,10 +82,14 @@ Fluxo recomendado:
 2. Render/Railway hospeda a API FastAPI
 3. worker roda em outro serviço e executa a checagem periódica de preços
 4. PostgreSQL fica externo e seguro
-5. WhatsApp usa HTTPS e webhook público válido
+5. HTTPS no domínio da API para acesso do cliente
 
 > Nota: o Redis foi removido da stack — nenhum código o utilizava. Se adicionar
 > cache no futuro, reintroduza `REDIS_URL` no settings e no docker-compose.
+
+> Nota: a integração via WhatsApp (webhook da Meta) foi removida — o projeto
+> passou a ser acessado pelo cliente via página web (dashboard). O histórico
+> dessa integração permanece no git.
 
 ## Docker Compose completo
 
@@ -110,7 +112,7 @@ docker compose up --build
 ### Render/Railway
 - publique a API FastAPI como service web
 - use `uvicorn app.api:app --host 0.0.0.0 --port 10000`
-- configure `DATABASE_URL`, `REDIS_URL`, `APP_ENV=production`
+- configure `DATABASE_URL`, `APP_ENV=production`
 - publique o worker como service worker separado com comando:
 
 ```bash
@@ -174,8 +176,7 @@ A base funcional foi validada com sucesso:
 - cadastro de produtos
 - histórico de preços
 - alertas
-- webhook do WhatsApp
-- dashboard básico
+- dashboard web
 - testes automatizados passando
 - monitoramento de saúde
 - backup do banco
