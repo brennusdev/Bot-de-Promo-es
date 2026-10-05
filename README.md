@@ -7,9 +7,11 @@ Sistema de monitoramento de preços e alertas de promoção para produtos de mar
 - coleta de produtos por URL
 - registro de histórico de preços
 - cálculo de promoção e score
-- alertas por queda percentual
+- alertas por queda percentual (log + e-mail)
 - API FastAPI para integração
-- dashboard web para visualização e cadastro pelo cliente
+- dashboard web: cadastro por URL, filtro por categoria, paginação,
+  popup de novas ofertas, gráfico interativo de histórico (ECharts)
+- login administrativo opcional e rate limit no cadastro
 
 ## Requisitos
 
@@ -52,10 +54,11 @@ Sistema de monitoramento de preços e alertas de promoção para produtos de mar
    python -m uvicorn app.api:app --host 0.0.0.0 --port 8000 --reload
    ```
 
-   Ou use o launcher do projeto:
+   Ou use os launchers do projeto (agora centralizados em `deploy/`):
 
    ```powershell
-   .\run_local.ps1
+   .\deploy\run_local.ps1       # só a API
+   .\deploy\deploy_local.ps1    # deps + testes + Docker
    ```
 
 ## Endpoints importantes
@@ -64,7 +67,11 @@ Sistema de monitoramento de preços e alertas de promoção para produtos de mar
 - http://localhost:8000/health
 - http://localhost:8000/dashboard
 - http://localhost:8000/products
+- http://localhost:8000/categories
+- http://localhost:8000/offers/new
+- http://localhost:8000/products/view?id=1 (detalhe + gráfico)
 - http://localhost:8000/users
+- http://localhost:8000/docs (documentação interativa da API)
 
 ## Arquitetura de produção
 
