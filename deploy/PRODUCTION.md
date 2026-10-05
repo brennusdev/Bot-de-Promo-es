@@ -9,7 +9,7 @@
 
 ## 2) Variáveis de ambiente
 
-Use o arquivo `deploy-production.env.example` como base.
+Use o arquivo `production.env.example` como base.
 
 ### Obrigatórias
 - `APP_ENV=production`

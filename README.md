@@ -131,12 +131,17 @@ python -m app.workers.price_worker
 Use o script de implantação:
 
 ```powershell
-.\deploy_local.ps1
+.\deploy\deploy_local.ps1
 ```
 
 ## Checklist de execução em máquina real
 
-Consulte [docs/DEPLOY_CHECKLIST.md](docs/DEPLOY_CHECKLIST.md) para a sequência completa de validação e operação em produção.
+> **Toda a documentação e scripts de deploy estão centralizados na pasta
+> [`deploy/`](deploy/README.md)** — guia de produção ([PRODUCTION.md](deploy/PRODUCTION.md)),
+> checklist de validação ([CHECKLIST.md](deploy/CHECKLIST.md)) e modelo de
+> variáveis de ambiente ([production.env.example](deploy/production.env.example)).
+
+Consulte [deploy/CHECKLIST.md](deploy/CHECKLIST.md) para a sequência completa de validação e operação em produção.
 
 ## Observação importante sobre Windows / PowerShell
 
@@ -180,11 +185,14 @@ python scripts\health_check.py
 
 A base funcional foi validada com sucesso:
 
-- cadastro de produtos
-- histórico de preços
-- alertas
-- dashboard web
-- testes automatizados passando
+- cadastro de produtos pelo dashboard
+- histórico de preços com gráfico interativo (ECharts)
+- categorias (Notebook, Tablet, Monitor, Fone, Mouse, Teclado)
+- alertas com e-mail opcional (SMTP)
+- popup de novas ofertas
+- login administrativo opcional + rate limit
+- dashboard web com paginação e filtros
+- testes automatizados passando (40+)
 - monitoramento de saúde
 - backup do banco
 - logs rotativos
