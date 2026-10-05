@@ -2,6 +2,11 @@
 from pydantic import BaseModel, Field, HttpUrl
 
 
+class AdminLogin(BaseModel):
+    """Corpo de login administrativo do dashboard."""
+    password: str = Field(min_length=1)
+
+
 class UserCreate(BaseModel):
     """Corpo de criação de usuário."""
     name: str | None = None
