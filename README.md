@@ -91,7 +91,8 @@ Fluxo recomendado:
 
 ## Docker Compose completo
 
-O projeto inclui stack com PostgreSQL, Redis, API e worker. Para subir em ambiente local:
+O projeto inclui stack com PostgreSQL, API e worker (o Redis foi removido por
+não ser usado). Para subir em ambiente local:
 
 ```powershell
 Copy-Item .env.example .env
