@@ -4,7 +4,6 @@
 from pathlib import Path
 import os
 import time
-from collections import defaultdict
 
 from fastapi import FastAPI, HTTPException, Request, Response
 from fastapi.responses import FileResponse
@@ -14,6 +13,7 @@ from fastapi.concurrency import run_in_threadpool
 from app.health import register_health_checks
 from app.logging_config import configure_logging
 from app.schemas import AdminLogin, AlertCreate, ProductCreate, UserCreate
+from app.services import rate_limit_service
 from app.services.alert_service import calculate_price_change
 from app.services.price_service import get_price_history, get_recent_prices
 from app.services.product_service import delete_product, list_products
@@ -28,24 +28,37 @@ configure_logging()
 # Em produção, configure ADMIN_PASSWORD no .env do provedor.
 ADMIN_PASSWORD = os.getenv("ADMIN_PASSWORD", "")
 
-# ===== Rate limit simples (memória) =====
-# ESTUDO (segurança): limita cadastros por IP para evitar abuso do endpoint
-# público. Janela deslizante em memória — para uma instância única, isso é
-# suficiente sem dependência externa (sem Redis).
-RATE_LIMIT_MAX_REQUESTS = int(os.getenv("RATE_LIMIT_MAX_REQUESTS", "10"))
-RATE_LIMIT_WINDOW_SECONDS = int(os.getenv("RATE_LIMIT_WINDOW_SECONDS", "60"))
-_rate_limit_hits: dict[str, list[float]] = defaultdict(list)
+# ===== Rate limit (persistido no banco) =====
+# ESTUDO (serverless): a versão antiga usava memória por processo — na Vercel
+# cada invocação tem memória própria, então o limite não era global. Agora os
+# hits vão para a tabela rate_limit_hits, criada em init_db.
+rate_limit_service.configure_rate_limit(
+    max_requests=int(os.getenv("RATE_LIMIT_MAX_REQUESTS", "10")),
+    window_seconds=int(os.getenv("RATE_LIMIT_WINDOW_SECONDS", "60")),
+)
+
+# ===== Cron (worker serverless) =====
+# ESTUDO (arquitetura): o worker original tem while True — impossível na
+# Vercel Functions. O endpoint /cron/monitor executa UM ciclo de coleta e é
+# disparado periodicamente pelo cron do vercel.json (ver CRON_SECRET).
+CRON_SECRET = os.getenv("CRON_SECRET", "")
+
+
+def require_cron_secret(request: Request) -> None:
+    """Valida o header x-cron-secret. Em dev (sem CRON_SECRET) fica aberto."""
+    if not CRON_SECRET:
+        return
+    if request.headers.get("x-cron-secret", "") != CRON_SECRET:
+        raise HTTPException(status_code=401, detail="Cron secret inválido")
 
 
 def check_rate_limit(request: Request) -> None:
     """Lança 429 se o IP exceder o limite de cadastros na janela."""
     client_ip = request.client.host if request.client else "unknown"
-    now = time.time()
-    hits = _rate_limit_hits[client_ip]
-    _rate_limit_hits[client_ip] = [t for t in hits if now - t < RATE_LIMIT_WINDOW_SECONDS]
-    if len(_rate_limit_hits[client_ip]) >= RATE_LIMIT_MAX_REQUESTS:
-        raise HTTPException(status_code=429, detail="Muitas requisições. Tente novamente em instantes.")
-    _rate_limit_hits[client_ip].append(now)
+    try:
+        rate_limit_service.check_rate_limit(client_ip)
+    except PermissionError as exc:
+        raise HTTPException(status_code=429, detail=str(exc)) from exc
 
 
 def require_admin(request: Request) -> None:
@@ -220,3 +233,44 @@ def add_alert(user_id: int, payload: AlertCreate):
 def user_alerts(user_id: int):
     """Lista alertas de um usuário."""
     return list_alerts(user_id)
+
+
+@app.post("/cron/monitor")
+def cron_monitor(request: Request):
+    """Executa UM ciclo completo de coleta + alerta e retorna o resumo.
+
+    ESTUDO (serverless): substitui o while True do worker local. Chamado
+    automaticamente pelo cron do vercel.json (ou manualmente com o header
+    x-cron-secret). Em dev, sem CRON_SECRET, fica aberto para testes.
+
+    ESTUDO (performance): scraping é síncrono (requests), então roda no
+    threadpool — a Vercel permite até 60s por invocação no plano Hobby;
+    se a base crescer muito, divida o ciclo em lotes (?limit=N).
+    """
+    require_cron_secret(request)
+    from app.main import process_product  # import local evita ciclo de imports
+    from app.workers.price_worker import (
+        PRICE_RETENTION_DAYS,
+        REQUEST_DELAY_SECONDS,
+        fetch_current_price_for_url,
+    )
+    from app.database.connection import cleanup_old_prices, init_db
+    from app.services.monitor_service import monitor_all_products
+    from app.services.rate_limit_service import cleanup_rate_limit
+
+    init_db()
+    results = monitor_all_products(
+        fetch_current_price_for_url,
+        delay_seconds=REQUEST_DELAY_SECONDS,
+    )
+    deleted_prices = cleanup_old_prices(days_to_keep=PRICE_RETENTION_DAYS)
+    cleanup_rate_limit()
+
+    triggered = sum(1 for r in results if r.get("alert_triggered"))
+    return {
+        "status": "ok",
+        "processed": len(results),
+        "alerts_triggered": triggered,
+        "prices_cleaned": deleted_prices,
+        "results": results,
+    }

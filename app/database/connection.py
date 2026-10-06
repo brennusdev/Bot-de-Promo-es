@@ -63,6 +63,7 @@ def ensure_indexes(conn):
     cursor.execute("CREATE INDEX IF NOT EXISTS idx_prices_collected_at ON prices (collected_at)")
     cursor.execute("CREATE INDEX IF NOT EXISTS idx_alerts_user_product ON alerts (user_id, product_id)")
     cursor.execute("CREATE INDEX IF NOT EXISTS idx_alerts_product ON alerts (product_id)")
+    cursor.execute("CREATE INDEX IF NOT EXISTS idx_rate_limit_ip ON rate_limit_hits (ip, created_at)")
 
     conn.commit()
 
@@ -184,6 +185,15 @@ def init_db():
             )
             """
         )
+        cursor.execute(
+            """
+            CREATE TABLE IF NOT EXISTS rate_limit_hits (
+                id SERIAL PRIMARY KEY,
+                ip VARCHAR(64) NOT NULL,
+                created_at DOUBLE PRECISION NOT NULL
+            )
+            """
+        )
     else:
         cursor.execute(
             """
@@ -236,6 +246,16 @@ def init_db():
                 created_at TEXT DEFAULT CURRENT_TIMESTAMP,
                 FOREIGN KEY(user_id) REFERENCES users(id),
                 FOREIGN KEY(product_id) REFERENCES products(id)
+            )
+            """
+        )
+
+        cursor.execute(
+            """
+            CREATE TABLE IF NOT EXISTS rate_limit_hits (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                ip TEXT NOT NULL,
+                created_at REAL NOT NULL
             )
             """
         )

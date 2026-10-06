@@ -141,11 +141,9 @@ def test_admin_login_sem_senha_configurada(client, monkeypatch):
 
 
 def test_rate_limit(client, monkeypatch):
-    """POST excedendo o limite por IP recebe 429."""
-    import app.api as api_module
-    monkeypatch.setattr(api_module, "RATE_LIMIT_MAX_REQUESTS", "2" if False else 2)
-    monkeypatch.setattr(api_module, "RATE_LIMIT_WINDOW_SECONDS", 60)
-    api_module._rate_limit_hits.clear()
+    """POST excedendo o limite por IP recebe 429 (limite persistido no banco)."""
+    from app.services import rate_limit_service
+    rate_limit_service.configure_rate_limit(max_requests=2, window_seconds=60)
 
     # TestClient usa host "testclient" — 3ª requisição deve bloquear.
     codes = []
@@ -153,6 +151,32 @@ def test_rate_limit(client, monkeypatch):
         resp = client.post("/products", json={"url": "https://www.kabum.com.br/rl"})
         codes.append(resp.status_code)
     assert codes[2] == 429
+
+
+# ===== /cron/monitor (worker serverless) =====
+
+
+def test_cron_monitor_aberto_em_dev(client):
+    """Sem CRON_SECRET, o endpoint responde 200 e executa o ciclo."""
+    resp = client.post("/cron/monitor")
+    assert resp.status_code == 200
+    body = resp.json()
+    assert body["status"] == "ok"
+    assert body["processed"] == 0
+    assert body["alerts_triggered"] == 0
+
+
+def test_cron_monitor_com_secret(client, monkeypatch):
+    """Com CRON_SECRET, sem header dá 401; com header correto, 200."""
+    import app.api as api_module
+    monkeypatch.setattr(api_module, "CRON_SECRET", "token-cron")
+
+    resp = client.post("/cron/monitor")
+    assert resp.status_code == 401
+
+    resp2 = client.post("/cron/monitor", headers={"x-cron-secret": "token-cron"})
+    assert resp2.status_code == 200
+    assert resp2.json()["status"] == "ok"
 
 
 def test_promotion_score_atualizado_no_ciclo(client, monkeypatch):

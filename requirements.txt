@@ -1,4 +1,7 @@
-fastapi==0.115.6
+# REVISÃO: fastapi 0.115 + starlette 0.41 usam asyncio.iscoroutinefunction,
+# deprecado no Python 3.14 (removido no 3.16). 0.142/0.52 usam inspect
+# e zeram os DeprecationWarnings dos testes.
+fastapi>=0.142,<1
 pydantic>=2.9,<3
 # REVISÃO: uvicorn 0.30.6 não suporta Python 3.13+; 0.34+ sim.
 uvicorn[standard]>=0.34.0,<1
