@@ -73,23 +73,48 @@ Sistema de monitoramento de preços e alertas de promoção para produtos de mar
 - http://localhost:8000/users
 - http://localhost:8000/docs (documentação interativa da API)
 
-## Arquitetura de produção
+## Arquitetura de produção (Vercel-only)
 
-A estrutura recomendada para produção é:
+A produção roda em DOIS serviços, nada mais:
 
-- Frontend: Vercel
-- API: Render ou Railway
-- Worker: serviço separado em Render/Railway ou VPS
-- Banco: PostgreSQL externo
-- Monitoramento: health checks + logs
+- **Vercel** — API FastAPI + dashboard + worker serverless (via cron)
+- **PostgreSQL externo** — Neon ou Supabase (tier free serve)
 
-Fluxo recomendado:
+Fluxo:
 
-1. Vercel hospeda o dashboard e frontend
-2. Render/Railway hospeda a API FastAPI
-3. worker roda em outro serviço e executa a checagem periódica de preços
-4. PostgreSQL fica externo e seguro
-5. HTTPS no domínio da API para acesso do cliente
+1. Vercel hospeda a API (`api/index.py`) e o dashboard (`/dashboard`)
+2. O cron do `vercel.json` dispara `GET /cron/monitor` (a cada 30 min no
+   plano Pro; 1x/dia no Hobby)
+3. O PostgreSQL fica externo e persiste os dados (o filesystem do
+   serverless é somente leitura — nada de SQLite em produção)
+4. Monitoramento: `/health` + Runtime Logs da Vercel
+
+### Variáveis de ambiente (painel da Vercel)
+
+- `DATABASE_URL` — string de conexão PostgreSQL (obrigatória)
+- `APP_ENV=production` — obrigatória
+- `CRON_SECRET` — o Vercel envia `Authorization: Bearer $CRON_SECRET`
+  automaticamente no cron; agendadores externos podem usar o header
+  `x-cron-secret` com o mesmo valor
+- Opcionais: `ADMIN_PASSWORD`, `RATE_LIMIT_*`, `SMTP_*`, `LOG_TO_FILE`
+
+### Intervalo de coleta
+
+- **Plano Pro:** o cron do `vercel.json` já roda a cada 30 min
+- **Plano Hobby:** o cron da Vercel roda no mínimo 1x/dia. Para intervalos
+  menores, use um agendador externo gratuito (cron-job.org, Upstash QStash)
+  chamando `GET /cron/monitor` com o header `x-cron-secret`
+
+### Quando migrar para arquitetura híbrida
+
+A arquitetura Vercel-only atende bem até ~40-50 produtos (limite de 60s
+por invocação). Migre a API/worker para Render/Railway/VPS se:
+
+- a base passar desse porte (ou divida o ciclo em lotes)
+- os e-commerces bloquearem o IP da Vercel (IP de datacenter)
+
+O `docker-compose.yml` continua sendo a forma correta de rodar localmente
+com PostgreSQL (API + worker com loop infinito), e serve de plano B.
 
 > Nota: o Redis foi removido da stack — nenhum código o utilizava. Se adicionar
 > cache no futuro, reintroduza `REDIS_URL` no settings e no docker-compose.
