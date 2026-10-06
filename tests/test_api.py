@@ -167,16 +167,26 @@ def test_cron_monitor_aberto_em_dev(client):
 
 
 def test_cron_monitor_com_secret(client, monkeypatch):
-    """Com CRON_SECRET, sem header dá 401; com header correto, 200."""
+    """Com CRON_SECRET: 401 sem header; 200 com x-cron-secret ou Bearer.
+    O GET também funciona (o Vercel Cron dispara GET, não POST)."""
     import app.api as api_module
     monkeypatch.setattr(api_module, "CRON_SECRET", "token-cron")
 
-    resp = client.post("/cron/monitor")
+    resp = client.get("/cron/monitor")
     assert resp.status_code == 401
 
-    resp2 = client.post("/cron/monitor", headers={"x-cron-secret": "token-cron"})
-    assert resp2.status_code == 200
-    assert resp2.json()["status"] == "ok"
+    resp_x = client.get("/cron/monitor", headers={"x-cron-secret": "token-cron"})
+    assert resp_x.status_code == 200
+
+    # Formato nativo do Vercel Cron: Authorization: Bearer <CRON_SECRET>
+    resp_bearer = client.get(
+        "/cron/monitor", headers={"Authorization": "Bearer token-cron"}
+    )
+    assert resp_bearer.status_code == 200
+
+    resp_post = client.post("/cron/monitor", headers={"x-cron-secret": "token-cron"})
+    assert resp_post.status_code == 200
+    assert resp_post.json()["status"] == "ok"
 
 
 def test_promotion_score_atualizado_no_ciclo(client, monkeypatch):

@@ -45,11 +45,21 @@ CRON_SECRET = os.getenv("CRON_SECRET", "")
 
 
 def require_cron_secret(request: Request) -> None:
-    """Valida o header x-cron-secret. Em dev (sem CRON_SECRET) fica aberto."""
+    """Valida o segredo do cron. Em dev (sem CRON_SECRET) fica aberto.
+
+    Aceita duas formas:
+    - header Authorization: Bearer <secret> — enviado AUTOMATICAMENTE pelo
+      Vercel Cron quando a env CRON_SECRET existe (comportamento nativo);
+    - header x-cron-secret — para agendadores externos (cron-job.org, Upstash).
+    """
     if not CRON_SECRET:
         return
-    if request.headers.get("x-cron-secret", "") != CRON_SECRET:
-        raise HTTPException(status_code=401, detail="Cron secret inválido")
+    auth = request.headers.get("authorization", "")
+    if auth == f"Bearer {CRON_SECRET}":
+        return
+    if request.headers.get("x-cron-secret", "") == CRON_SECRET:
+        return
+    raise HTTPException(status_code=401, detail="Cron secret inválido")
 
 
 def check_rate_limit(request: Request) -> None:
@@ -235,6 +245,7 @@ def user_alerts(user_id: int):
     return list_alerts(user_id)
 
 
+@app.get("/cron/monitor")
 @app.post("/cron/monitor")
 def cron_monitor(request: Request):
     """Executa UM ciclo completo de coleta + alerta e retorna o resumo.
